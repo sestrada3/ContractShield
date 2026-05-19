@@ -132,19 +132,13 @@ app.post('/api/analyze', rateLimit({ windowMs: 60_000, max: 5 }), requireAuth, a
       messages: [{ role: 'user' as const, content }],
     };
 
-    let message: any;
-    if (pdfBase64) {
-      message = await (anthropic as any).beta.messages.create({
+    const message: any = await anthropic.messages.create(
+      {
         ...modelParams,
-        model: 'claude-3-5-sonnet-20241022',
-        betas: ['pdfs-2024-09-25'],
-      });
-    } else {
-      message = await anthropic.messages.create({
-        ...modelParams,
-        model: 'claude-haiku-4-5-20251001',
-      });
-    }
+        model: pdfBase64 ? 'claude-3-5-sonnet-20241022' : 'claude-haiku-4-5-20251001',
+      },
+      pdfBase64 ? { headers: { 'anthropic-beta': 'pdfs-2024-09-25' } } : undefined,
+    );
 
     const raw    = (message.content[0] as any).text;
     const result = parseJSON(raw);
@@ -163,8 +157,8 @@ app.post('/api/analyze', rateLimit({ windowMs: 60_000, max: 5 }), requireAuth, a
 
     res.json(result);
   } catch (e: any) {
-    console.error('Analyze error:', e?.message, e?.status);
-    res.status(500).json({ error: 'Analysis failed. Please try again.' });
+    console.error('Analyze error:', e?.status, e?.message);
+    res.status(500).json({ error: e?.message || 'Analysis failed. Please try again.' });
   }
 });
 
