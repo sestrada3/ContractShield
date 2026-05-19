@@ -1,0 +1,82 @@
+# E2E Flow 01 — Happy Path
+# New user: onboarding → sign up → paste contract text → view results
+# Prerequisites: app installed, no prior session, Stripe in test mode
+
+appId: com.contractshield.app
+---
+# ── Launch and onboarding ─────────────────────────────────────────────────────
+- launchApp:
+    clearState: true
+
+- assertVisible: "Know What You're"
+- tapOn: "Next →"
+- assertVisible: "Upload. Analyze."
+- tapOn: "Next →"
+- assertVisible: "Analyzed."
+- tapOn: "Get Started →"
+
+# ── Sign up ───────────────────────────────────────────────────────────────────
+- assertVisible: "ContractShield"
+- assertVisible: "Sign In"
+
+- tapOn: "Don't have an account? Sign up"
+- assertVisible: "Create Account"
+
+- tapOn:
+    text: "Email"
+- inputText: "qa_test_user@contractshield.com"
+
+- tapOn:
+    text: "Password"
+- inputText: "TestPass123!"
+
+- tapOn: "Create Account →"
+
+# Email confirmation required in prod; in test mode Supabase auto-confirms.
+# If confirmation modal appears, dismiss it and sign in.
+- runFlow:
+    when:
+      visible: "Check your email"
+    commands:
+      - tapOn: "OK"
+      - tapOn: "Already have an account? Sign in"
+      - tapOn:
+          text: "Email"
+      - inputText: "qa_test_user@contractshield.com"
+      - tapOn:
+          text: "Password"
+      - inputText: "TestPass123!"
+      - tapOn: "Sign In →"
+
+# ── Home screen ───────────────────────────────────────────────────────────────
+- assertVisible: "Know what you're"
+- assertVisible: "Browse Files"
+- assertVisible: "3 free analyses remaining"
+
+# ── Paste contract text and analyze ──────────────────────────────────────────
+- tapOn:
+    text: "Paste contract or document text here"
+- inputText: "EMPLOYMENT AGREEMENT. This agreement is between Acme Corp (Employer) and John Smith (Employee). Employee agrees to a 24-month non-compete clause covering all technology companies worldwide. No severance is provided upon termination. All IP created during employment belongs to Employer. Annual salary is $80,000."
+
+- assertVisible: "Analyze My Document →"
+- tapOn: "Analyze My Document →"
+
+# ── Loading overlay ───────────────────────────────────────────────────────────
+- assertVisible: "Reading your document"
+- waitForAnimationToEnd
+
+# ── Results screen ────────────────────────────────────────────────────────────
+- assertVisible: "CLAUSE ANALYSIS"
+- assertVisible: "WORKS IN YOUR FAVOR"
+- assertNotVisible: "No results yet."
+
+# Score ring should be visible (a number 1-10)
+- assertVisible:
+    regex: "^[1-9]$|^10$"
+
+# Verify disclaimer
+- assertVisible: "Not legal advice"
+
+# ── Back to home ──────────────────────────────────────────────────────────────
+- tapOn: "Back"
+- assertVisible: "Know what you're"

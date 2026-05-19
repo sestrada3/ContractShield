@@ -1,0 +1,60 @@
+# E2E Flow 03 — Paywall and Upgrade
+# Tests: free limit enforcement, paywall content, plan selection, checkout
+
+appId: com.contractshield.app
+---
+- launchApp
+
+# Assumes signed-in free user with 3/3 analyses used (configure via Supabase seed)
+# OR run 01_happy_path 3 times first to exhaust the quota
+
+# ── Free limit enforcement ────────────────────────────────────────────────────
+- assertVisible: "0 free analyses remaining"
+
+- tapOn:
+    text: "Paste contract or document text here"
+- inputText: "Some contract text to trigger paywall"
+
+- assertVisible: "Upgrade to Analyze →"
+- tapOn: "Upgrade to Analyze →"
+
+# Should navigate to Paywall (not start analysis)
+- assertVisible: "ContractShield Pro"
+
+# ── Paywall content ───────────────────────────────────────────────────────────
+- assertVisible: "⭐ 4.9"
+- assertVisible: "Unlimited contract analyses"
+- assertVisible: "Copy-ready negotiation scripts"
+- assertVisible: "Analysis history"
+- assertVisible: "SAVE 40%"
+- assertVisible: "Start Free 7-Day Trial →"
+- assertVisible: "No charge today"
+
+# ── Plan selection: Monthly ───────────────────────────────────────────────────
+- tapOn: "Monthly"
+- assertVisible: "$9.99/mo"
+
+# ── Plan selection: Yearly (default) ─────────────────────────────────────────
+- tapOn: "Yearly"
+- assertVisible: "$5.99/mo"
+- assertVisible: "Billed $71.88/yr"
+
+# ── Dismiss paywall ───────────────────────────────────────────────────────────
+- tapOn: "✕"
+- assertVisible: "Know what you're"
+
+# ── Paywall from Upgrade link ─────────────────────────────────────────────────
+- tapOn: "Upgrade →"
+- assertVisible: "ContractShield Pro"
+- tapOn: "✕"
+
+# ── Start checkout (Stripe test mode) ────────────────────────────────────────
+# NOTE: This opens Stripe's browser-based checkout.
+# In CI use Stripe test card: 4242 4242 4242 4242, exp 12/34, CVC 123
+- tapOn: "Start Free 7-Day Trial →"
+- assertVisible: "Opening…"
+# Browser opens — handled by Stripe; after completion app polls getUsage()
+
+# ── Post-upgrade verification ─────────────────────────────────────────────────
+# After successful upgrade return to app
+# (Maestro external browser interaction is environment-specific)

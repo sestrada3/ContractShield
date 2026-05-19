@@ -1,0 +1,89 @@
+# E2E Flow 04 — Account Management
+# Tests: profile display, history viewing, manage subscription, delete account
+
+appId: com.contractshield.app
+---
+- launchApp
+
+# Assumes signed-in user with at least 1 analysis in history
+
+# ── Navigate to Account ────────────────────────────────────────────────────────
+- tapOn:
+    id: "icon-person-circle-outline"
+
+- assertVisible: "Account"
+
+# ── Profile card ──────────────────────────────────────────────────────────────
+- assertVisible: "SUBSCRIPTION"
+- assertVisible: "Plan"
+
+# ── History section ───────────────────────────────────────────────────────────
+- assertVisible: "RECENT ANALYSES"
+
+# If history is empty:
+- runFlow:
+    when:
+      visible: "No analyses yet"
+    commands:
+      - tapOn: "Back"
+      - tapOn:
+          text: "Paste contract or document text here"
+      - inputText: "Test contract for history"
+      - tapOn: "Analyze My Document →"
+      - waitForAnimationToEnd
+      - tapOn: "Back"
+      - tapOn:
+          id: "icon-person-circle-outline"
+
+# History items should now be visible
+- assertNotVisible: "No analyses yet"
+
+# ── Tap history item to view result ──────────────────────────────────────────
+- tapOn:
+    index: 0
+    text: ".*"
+    regex: true
+    label: "history-item"
+
+# Should navigate to ResultsScreen
+- assertVisible: "CLAUSE ANALYSIS"
+- tapOn: "Back"
+
+# Back to Account
+- assertVisible: "Account"
+
+# ── Manage subscription (free user → upgrade) ─────────────────────────────────
+- runFlow:
+    when:
+      visible: "Upgrade to Pro →"
+    commands:
+      - tapOn: "Upgrade to Pro →"
+      - assertVisible: "ContractShield Pro"
+      - tapOn: "✕"
+
+# ── Sign out ──────────────────────────────────────────────────────────────────
+- tapOn: "Sign Out"
+- assertVisible: "Sign In"
+
+# ── Delete account (destructive — run in dedicated test environment only) ─────
+# Re-sign-in first
+- tapOn:
+    text: "Email"
+- inputText: "qa_delete_test@contractshield.com"
+- tapOn:
+    text: "Password"
+- inputText: "DeleteMe123!"
+- tapOn: "Sign In →"
+
+- tapOn:
+    id: "icon-person-circle-outline"
+
+- tapOn: "Delete Account & Data"
+
+# Confirmation alert
+- assertVisible: "Delete Account"
+- assertVisible: "This permanently deletes"
+- tapOn: "Delete Forever"
+
+# Should return to login after deletion
+- assertVisible: "Sign In"

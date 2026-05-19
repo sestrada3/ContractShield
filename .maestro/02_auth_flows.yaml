@@ -1,0 +1,90 @@
+# E2E Flow 02 — Authentication Flows
+# Tests: sign-in, sign-out, forgot password, validation errors
+
+appId: com.contractshield.app
+---
+# ── Sign-in validation errors ─────────────────────────────────────────────────
+- launchApp:
+    clearState: true
+
+# Skip onboarding
+- tapOn: "Skip"
+
+- assertVisible: "Sign In"
+
+# Empty email submit
+- tapOn: "Sign In →"
+- assertVisible: "Enter your email"
+- tapOn: "OK"
+
+# Empty password submit
+- tapOn:
+    text: "Email"
+- inputText: "user@test.com"
+- tapOn: "Sign In →"
+- assertVisible: "Enter your password"
+- tapOn: "OK"
+
+# Wrong credentials
+- tapOn:
+    text: "Password"
+- inputText: "wrongpassword"
+- tapOn: "Sign In →"
+- assertVisible: "Error"
+- tapOn: "OK"
+
+# ── Sign-up validation ────────────────────────────────────────────────────────
+- tapOn: "Don't have an account? Sign up"
+- assertVisible: "Minimum 6 characters"
+
+# Short password
+- clearText
+- tapOn:
+    text: "Email"
+- inputText: "new@user.com"
+- tapOn:
+    text: "Password"
+- inputText: "123"
+- tapOn: "Create Account →"
+- assertVisible: "Password too short"
+- tapOn: "OK"
+
+# ── Forgot password flow ──────────────────────────────────────────────────────
+- tapOn: "Already have an account? Sign in"
+- tapOn: "Forgot password?"
+- assertVisible: "Reset Password"
+- assertVisible: "Send Reset Link →"
+- assertNotVisible: "Password"  # Password field hidden in reset mode
+
+- tapOn:
+    text: "Email"
+- inputText: "user@test.com"
+- tapOn: "Send Reset Link →"
+- assertVisible: "Check your email"
+- tapOn: "OK"
+
+# Should return to sign-in mode
+- assertVisible: "Sign In"
+
+# ── Back from reset ───────────────────────────────────────────────────────────
+- tapOn: "Forgot password?"
+- assertVisible: "← Back to sign in"
+- tapOn: "← Back to sign in"
+- assertVisible: "Sign In"
+
+# ── Successful sign-in ────────────────────────────────────────────────────────
+- tapOn:
+    text: "Email"
+- inputText: "qa_test_user@contractshield.com"
+- tapOn:
+    text: "Password"
+- inputText: "TestPass123!"
+- tapOn: "Sign In →"
+- assertVisible: "Know what you're"
+
+# ── Sign out ──────────────────────────────────────────────────────────────────
+- tapOn:
+    id: "icon-person-circle-outline"
+- assertVisible: "Account"
+- tapOn: "Sign Out"
+- assertVisible: "Sign In"

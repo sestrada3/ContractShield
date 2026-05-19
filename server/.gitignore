@@ -1,0 +1,13 @@
+# Dependencies
+node_modules/
+
+# Env files — never commit secrets
+.env
+.env.local
+.env.*.local
+
+# Build
+dist/
+
+# Vercel
+.vercel

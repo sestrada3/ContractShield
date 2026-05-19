@@ -1,0 +1,52 @@
+{
+  "expo": {
+    "name": "ContractShield",
+    "slug": "contractshield",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0d1b3e"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.contractshield.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Take photos of contracts to analyze them",
+        "NSPhotoLibraryUsageDescription": "Upload contract images from your photo library"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0b0d12"
+      },
+      "package": "com.contractshield.app",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE"
+      ]
+    },
+    "plugins": [
+      "expo-document-picker",
+      "expo-image-picker",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "newArchEnabled": true
+          },
+          "android": {
+            "newArchEnabled": true
+          }
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "scheme": "contractshield",
+    "extra": {}
+  }
+}

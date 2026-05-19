@@ -1,0 +1,40 @@
+# Secrets — never commit
+*Keys and Secrets*
+*keys and secrets*
+
+# Dependencies
+node_modules/
+
+# Env files — never commit secrets
+.env
+.env.local
+.env.*.local
+
+# Expo
+.expo/
+dist/
+web-build/
+
+# Build artifacts
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Native
+ios/
+android/
+
+# Vercel
+.vercel
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+.claude/
