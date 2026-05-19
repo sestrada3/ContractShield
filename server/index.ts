@@ -126,21 +126,43 @@ app.post('/api/analyze', rateLimit({ windowMs: 60_000, max: 5 }), requireAuth, a
         ]
       : prompt;
 
-    const modelParams = {
-      max_tokens: 2000,
-      system: 'You are a legal document analyst. Output only raw JSON. Start with { and end with }. Never include personal identifiers, names, SSNs, emails, or addresses in your response.',
-      messages: [{ role: 'user' as const, content }],
-    };
+    const system = 'You are a legal document analyst. Output only raw JSON. Start with { and end with }. Never include personal identifiers, names, SSNs, emails, or addresses in your response.';
 
-    const message: any = await anthropic.messages.create(
-      {
-        ...modelParams,
-        model: pdfBase64 ? 'claude-3-5-sonnet-20241022' : 'claude-haiku-4-5-20251001',
-      },
-      pdfBase64 ? { headers: { 'anthropic-beta': 'pdfs-2024-09-25' } } : undefined,
-    );
+    let raw: string;
 
-    const raw    = (message.content[0] as any).text;
+    if (pdfBase64) {
+      // Call Anthropic API directly so we control the beta header precisely
+      const apiRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-api-key': process.env.ANTHROPIC_API_KEY!,
+          'anthropic-version': '2023-06-01',
+          'anthropic-beta': 'pdfs-2024-09-25',
+        },
+        body: JSON.stringify({
+          model: 'claude-3-5-sonnet-20241022',
+          max_tokens: 2000,
+          system,
+          messages: [{ role: 'user', content }],
+        }),
+      });
+      const apiJson: any = await apiRes.json();
+      if (!apiRes.ok) {
+        console.error('Anthropic PDF error:', JSON.stringify(apiJson));
+        return res.status(500).json({ error: apiJson?.error?.message || 'PDF analysis failed.' });
+      }
+      raw = apiJson.content[0].text;
+    } else {
+      const message = await anthropic.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 2000,
+        system,
+        messages: [{ role: 'user' as const, content }],
+      });
+      raw = (message.content[0] as any).text;
+    }
+
     const result = parseJSON(raw);
     if (!result) return res.status(500).json({ error: 'Analysis failed. Please try again.' });
 

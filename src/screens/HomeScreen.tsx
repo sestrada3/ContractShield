@@ -157,7 +157,7 @@ export default function HomeScreen() {
       if (status === 429) { Alert.alert('Slow down', 'Too many requests. Please wait a moment.'); return; }
       if (status === 400) { Alert.alert('Could not analyze', e?.response?.data?.error || 'Invalid request.'); return; }
       setError('Analysis failed');
-      Alert.alert('Analysis Failed', 'Something went wrong. Please try again.');
+      Alert.alert('Analysis Failed', e?.response?.data?.error || e?.message || 'Something went wrong. Please try again.');
     } finally {
       setAnalyzing(false);
     }
