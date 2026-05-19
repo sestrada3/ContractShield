@@ -286,7 +286,7 @@ app.get('/payment-cancel', (_req, res) => {
 function callAnthropicPDF(apiKey: string, system: string, content: any): Promise<string> {
   return new Promise((resolve, reject) => {
     const body = JSON.stringify({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-sonnet-4-6',
       max_tokens: 2000,
       system,
       messages: [{ role: 'user', content }],
