@@ -8,26 +8,30 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        navy: {
-          950: '#0A1628',
-          900: '#0F1F38',
-          800: '#1E293B',
-          700: '#263548',
-          600: '#334155',
+        dark: {
+          950: '#0b0d12',
+          900: '#0d0f15',
+          800: '#13161e',
+          700: '#171b26',
+          600: '#1e2333',
         },
         gold: {
-          300: '#FCD34D',
-          400: '#FBBF24',
-          500: '#F59E0B',
-          600: '#D97706',
+          300: '#e4cc8a',
+          400: '#d4b86a',
+          500: '#c9a84c',
+          600: '#b8943a',
         },
+        green:  { DEFAULT: '#4caf7d' },
+        blue:   { DEFAULT: '#4a9eff' },
+        red:    { DEFAULT: '#e05252' },
+        amber:  { DEFAULT: '#e0993a' },
       },
       fontFamily: {
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
       },
       backgroundImage: {
-        'hero-gradient': 'radial-gradient(ellipse at top, #1E293B 0%, #0A1628 60%)',
-        'card-gradient': 'linear-gradient(135deg, #1E293B 0%, #0F1F38 100%)',
+        'hero-gradient': 'radial-gradient(ellipse at top, #171b26 0%, #0b0d12 60%)',
+        'card-gradient': 'linear-gradient(135deg, #13161e 0%, #0d0f15 100%)',
       },
     },
   },

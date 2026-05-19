@@ -1,12 +1,12 @@
 import Logo from './Logo';
 
 const links = {
-  Product: ['Features', 'How it Works', 'Pricing', 'API Docs', 'Changelog'],
-  Company: ['About', 'Blog', 'Careers', 'Press', 'Contact'],
-  Legal: ['Privacy Policy', 'Terms of Service', 'Cookie Policy', 'Security', 'GDPR'],
+  Product: ['Features', 'How it Works', 'Pricing', 'Download'],
+  Company: ['About', 'Blog', 'Careers', 'Contact'],
+  Legal: ['Privacy Policy', 'Terms of Service', 'Not Legal Advice'],
 };
 
-function TwitterIcon() {
+function XIcon() {
   return <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>;
 }
 
@@ -16,36 +16,37 @@ function LinkedInIcon() {
 
 export default function Footer() {
   return (
-    <footer className="bg-navy-950 border-t border-navy-800">
+    <footer style={{ background: '#0b0d12', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 lg:gap-8">
           <div className="lg:col-span-2 flex flex-col gap-4">
             <Logo />
-            <p className="text-slate-400 text-sm leading-relaxed max-w-xs">AI-powered contract risk analysis that protects your business before you sign. Trusted by 2,400+ companies worldwide.</p>
+            <p className="text-sm leading-relaxed max-w-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              AI-powered legal document review that reads every clause so you don&apos;t have to. Trusted by 12,000+ users.
+            </p>
             <div className="flex items-center gap-3 mt-2">
-              {[{ Icon: TwitterIcon, label: 'Twitter/X' }, { Icon: LinkedInIcon, label: 'LinkedIn' }].map(({ Icon, label }) => (
-                <a key={label} href="#" aria-label={label} className="w-9 h-9 bg-navy-800 hover:bg-navy-700 border border-navy-700 hover:border-navy-600 rounded-lg flex items-center justify-center text-slate-400 hover:text-white transition-all duration-200"><Icon /></a>
+              {[{ Icon: XIcon, label: 'X' }, { Icon: LinkedInIcon, label: 'LinkedIn' }].map(({ Icon, label }) => (
+                <a key={label} href="#" aria-label={label} className="w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200" style={{ background: '#13161e', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.4)' }}><Icon /></a>
               ))}
             </div>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {['SOC 2', 'GDPR', 'ISO 27001'].map((badge) => (
-                <span key={badge} className="text-xs text-slate-500 bg-navy-800 border border-navy-700 rounded px-2.5 py-1">{badge}</span>
-              ))}
-            </div>
+            <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.2)' }}>Informational only · Not legal advice</p>
           </div>
+
           {Object.entries(links).map(([category, items]) => (
             <div key={category}>
               <h4 className="text-white font-semibold text-sm mb-4">{category}</h4>
               <ul className="flex flex-col gap-2.5">
-                {items.map((item) => <li key={item}><a href="#" className="text-slate-400 hover:text-white text-sm transition-colors">{item}</a></li>)}
+                {items.map((item) => <li key={item}><a href="#" className="text-sm transition-colors" style={{ color: 'rgba(255,255,255,0.4)' }}>{item}</a></li>)}
               </ul>
             </div>
           ))}
         </div>
-        <div className="mt-12 pt-8 border-t border-navy-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-slate-500 text-sm">© 2024 ContractShield, Inc. All rights reserved.</p>
-          <div className="flex items-center gap-2 text-slate-500 text-xs">
-            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />All systems operational
+
+        <div className="mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.28)' }}>&copy; 2024 ContractShield. All rights reserved.</p>
+          <div className="flex items-center gap-2 text-xs" style={{ color: 'rgba(255,255,255,0.28)' }}>
+            <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#4caf7d' }} />
+            All systems operational
           </div>
         </div>
       </div>

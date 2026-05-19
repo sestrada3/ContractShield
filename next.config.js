@@ -1,3 +1,14 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'raw.githubusercontent.com',
+        pathname: '/sestrada3/ContractShield/**',
+      },
+    ],
+  },
+};
+
 module.exports = nextConfig;
