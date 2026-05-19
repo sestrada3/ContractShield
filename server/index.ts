@@ -4,7 +4,8 @@ import rateLimit from 'express-rate-limit';
 import Anthropic from '@anthropic-ai/sdk';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
-import https from 'https';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const https = require('https') as typeof import('https');
 
 const app  = express();
 const port = process.env.PORT || 3001;
