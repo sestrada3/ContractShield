@@ -63,8 +63,8 @@ app.post('/api/analyze', requireAuth, async (req: any, res) => {
       });
     }
 
-    const { text, imageBase64, imageType } = req.body;
-    if (!text && !imageBase64) {
+    const { text, imageBase64, imageType, pdfBase64 } = req.body;
+    if (!text && !imageBase64 && !pdfBase64) {
       return res.status(400).json({ error: 'No content provided' });
     }
 
@@ -76,19 +76,32 @@ app.post('/api/analyze', requireAuth, async (req: any, res) => {
     - keyDates: array of { description, date }
     - summary: brief plain-English overview`;
 
-    const content: any = imageBase64
+    const content: any = pdfBase64
+      ? [
+          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 } },
+          { type: 'text', text: prompt },
+        ]
+      : imageBase64
       ? [
           { type: 'image', source: { type: 'base64', media_type: imageType || 'image/jpeg', data: imageBase64 } },
           { type: 'text', text: prompt + ' The document is in the image.' },
         ]
       : prompt + '\n\n' + text;
 
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
-      system: 'Output only raw JSON. Start with { end with }. Never include personal identifiers.',
-      messages: [{ role: 'user', content }],
-    });
+    const message = pdfBase64
+      ? await (anthropic as any).beta.messages.create({
+          model: 'claude-3-5-sonnet-20241022',
+          max_tokens: 1000,
+          system: 'Output only raw JSON. Start with { end with }. Never include personal identifiers.',
+          messages: [{ role: 'user', content }],
+          betas: ['pdfs-2024-09-25'],
+        })
+      : await anthropic.messages.create({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          system: 'Output only raw JSON. Start with { end with }. Never include personal identifiers.',
+          messages: [{ role: 'user', content }],
+        });
 
     const raw = (message.content[0] as any).text;
     let result: any;
