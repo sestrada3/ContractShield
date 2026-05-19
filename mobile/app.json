@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "ContractShield",
+    "slug": "contractshield",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#0b0d12"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.contractshield.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0b0d12"
+      },
+      "package": "com.contractshield.app"
+    },
+    "plugins": [
+      ["expo-image-picker", {
+        "photosPermission": "Allow ContractShield to access your photos to analyze contracts.",
+        "cameraPermission": "Allow ContractShield to use your camera to scan contracts."
+      }],
+      "expo-document-picker"
+    ]
+  }
+}
