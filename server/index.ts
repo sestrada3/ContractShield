@@ -81,6 +81,18 @@ const supabase  = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_S
 
 const FREE_LIMIT = 3;
 
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
+
+const VALID_SUB_PRICES = new Set([
+  process.env.STRIPE_PRICE_MONTHLY,
+  process.env.STRIPE_PRICE_YEARLY,
+].filter(Boolean) as string[]);
+
+const VALID_ONETIME_PRICES = new Set([
+  process.env.STRIPE_PRICE_CREDIT_1,
+  process.env.STRIPE_PRICE_CREDIT_10,
+].filter(Boolean) as string[]);
+
 // ── Auth middleware ──────────────────────────────────────────────────────────
 const requireAuth = async (req: any, res: any, next: any) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
@@ -97,6 +109,12 @@ app.post('/api/analyze', rateLimit({ windowMs: 60_000, max: 5 }), requireAuth, a
 
   if (!text && !imageBase64 && !pdfBase64)
     return res.status(400).json({ error: 'No document provided' });
+  if (text !== undefined && typeof text !== 'string')
+    return res.status(400).json({ error: 'Invalid input: text must be a string' });
+  if (imageBase64 && imageBase64.length > 6 * 1024 * 1024)
+    return res.status(400).json({ error: 'Image too large. Please use an image under 4 MB.' });
+  if (imageBase64 && imageType && !ALLOWED_IMAGE_TYPES.has(imageType))
+    return res.status(400).json({ error: `Unsupported image type: ${imageType}` });
   if (pdfBase64 && pdfBase64.length > 6 * 1024 * 1024)
     return res.status(400).json({ error: 'PDF too large. Please use a PDF under 4 MB.' });
 
@@ -197,7 +215,7 @@ app.get('/api/history', requireAuth, async (req: any, res) => {
 // ── Stripe: subscription checkout ────────────────────────────────────────────
 app.post('/api/stripe/checkout', requireAuth, async (req: any, res) => {
   const { priceId } = req.body;
-  if (!priceId) return res.status(400).json({ error: 'priceId required' });
+  if (!priceId || !VALID_SUB_PRICES.has(priceId)) return res.status(400).json({ error: 'Invalid plan' });
   try {
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
@@ -217,7 +235,7 @@ app.post('/api/stripe/checkout', requireAuth, async (req: any, res) => {
 // ── Stripe: one-time checkout ────────────────────────────────────────────────
 app.post('/api/stripe/checkout-onetime', requireAuth, async (req: any, res) => {
   const { priceId } = req.body;
-  if (!priceId) return res.status(400).json({ error: 'priceId required' });
+  if (!priceId || !VALID_ONETIME_PRICES.has(priceId)) return res.status(400).json({ error: 'Invalid plan' });
   try {
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',

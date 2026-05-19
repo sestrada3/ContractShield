@@ -13,7 +13,7 @@ import { createCheckoutSession, createOneTimeCheckout } from '../services/api';
 const PRICES = {
   perAnalysis: 'prod_UY0wLBuE0jEPPa',   // $2.99 one-time
   creditPack:  'prod_UY0xUfXcea1cti',    // $14.99 one-time (10 analyses)
-  monthly:     'price_1TY8noPwwT0D6amwKPNvzhTO  ',        // $9.99/mo recurring
+  monthly:     'price_1TY8noPwwT0D6amwKPNvzhTO',         // $9.99/mo recurring
   yearly:      'price_1TY8npPwwT0D6amwuwTPZRm4',         // $71.88/yr recurring
 };
 

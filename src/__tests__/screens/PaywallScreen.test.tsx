@@ -1,41 +1,43 @@
 /**
  * Component tests — PaywallScreen
  * Tests subscription UI: plan rendering, selection, CTA text,
- * checkout initiation, and AppState return flow.
+ * checkout initiation, and pay-as-you-go tab.
  */
 
 import React from 'react';
-import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
+import { Linking } from 'react-native';
+import { render, fireEvent, act } from '@testing-library/react-native';
 import PaywallScreen from '../../screens/PaywallScreen';
 import { useStore } from '../../services/store';
 
-const mockGoBack  = jest.fn();
-const mockNavigate = jest.fn();
-const mockCreateCheckoutSession = jest.fn();
-const mockGetUsage = jest.fn();
+const mockGoBack              = jest.fn();
+const mockCreateCheckout      = jest.fn();
+const mockCreateOneTimeCheckout = jest.fn();
 
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ navigate: mockNavigate, goBack: mockGoBack }),
+  useNavigation: () => ({ navigate: jest.fn(), goBack: mockGoBack }),
 }));
 
 jest.mock('../../services/api', () => ({
-  createCheckoutSession: (...a: any[]) => mockCreateCheckoutSession(...a),
-  getUsage:              (...a: any[]) => mockGetUsage(...a),
+  createCheckoutSession:  (...a: any[]) => mockCreateCheckout(...a),
+  createOneTimeCheckout:  (...a: any[]) => mockCreateOneTimeCheckout(...a),
 }));
 
-jest.spyOn(require('react-native').Alert, 'alert').mockImplementation(() => {});
+// Capture native alert() calls
+const mockAlert = jest.fn();
+global.alert = mockAlert;
+
+let mockOpenURL: jest.SpyInstance;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockOpenURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
   useStore.setState({
     user: { id: 'u1', email: 'test@test.com' } as any,
     isPro: false,
     freeUsed: 3,
     freeLimit: 3,
-    setIsPro: jest.fn(),
-    setUsage: jest.fn(),
   } as any);
-  mockGetUsage.mockResolvedValue({ isPro: false, used: 3, limit: 3 });
 });
 
 // ─── Rendering ────────────────────────────────────────────────────────────────
@@ -45,19 +47,25 @@ describe('PaywallScreen — rendering', () => {
     expect(getByText('ContractShield Pro')).toBeTruthy();
   });
 
-  it('renders social proof stat', () => {
+  it('renders hero subtitle', () => {
     const { getByText } = render(<PaywallScreen />);
-    expect(getByText(/12,000\+ users/)).toBeTruthy();
+    expect(getByText(/Stop signing contracts/)).toBeTruthy();
   });
 
-  it('renders all 7 features', () => {
+  it('renders Subscribe and Pay As You Go tabs', () => {
+    const { getByText } = render(<PaywallScreen />);
+    expect(getByText('Subscribe')).toBeTruthy();
+    expect(getByText('Pay As You Go')).toBeTruthy();
+  });
+
+  it('renders all Pro feature list items', () => {
     const { getByText } = render(<PaywallScreen />);
     expect(getByText(/Unlimited contract analyses/)).toBeTruthy();
-    expect(getByText(/Full clause breakdowns/)).toBeTruthy();
+    expect(getByText(/Full clause risk breakdowns/)).toBeTruthy();
     expect(getByText(/Market benchmarking/)).toBeTruthy();
     expect(getByText(/negotiation scripts/)).toBeTruthy();
     expect(getByText(/Key date/)).toBeTruthy();
-    expect(getByText(/Analysis history/)).toBeTruthy();
+    expect(getByText(/Full analysis history/)).toBeTruthy();
     expect(getByText(/Priority support/)).toBeTruthy();
   });
 
@@ -73,75 +81,114 @@ describe('PaywallScreen — rendering', () => {
     expect(getByText('$5.99/mo')).toBeTruthy();
   });
 
-  it('renders SAVE 40% badge on yearly plan', () => {
+  it('renders BEST VALUE badge on yearly plan', () => {
     const { getByText } = render(<PaywallScreen />);
-    expect(getByText('SAVE 40%')).toBeTruthy();
+    expect(getByText('BEST VALUE')).toBeTruthy();
   });
 
-  it('renders the CTA button with trial text', () => {
-    const { getByText } = render(<PaywallScreen />);
-    expect(getByText('Start Free 7-Day Trial →')).toBeTruthy();
-  });
-
-  it('shows "No charge today" note', () => {
-    const { getByText } = render(<PaywallScreen />);
-    expect(getByText(/No charge today/)).toBeTruthy();
-  });
-
-  it('shows billing disclaimer', () => {
+  it('renders billing disclaimer', () => {
     const { getByText } = render(<PaywallScreen />);
     expect(getByText(/Billed via Stripe/)).toBeTruthy();
+  });
+
+  it('renders Free Tier comparison section', () => {
+    const { getByText } = render(<PaywallScreen />);
+    expect(getByText(/Free Tier/)).toBeTruthy();
+    expect(getByText(/3 free analyses/)).toBeTruthy();
+  });
+
+  it('renders close button', () => {
+    const { getByText } = render(<PaywallScreen />);
+    expect(getByText('✕')).toBeTruthy();
   });
 });
 
 // ─── Plan selection ───────────────────────────────────────────────────────────
 describe('PaywallScreen — plan selection', () => {
-  it('starts with yearly plan selected by default', () => {
+  it('shows "Start Pro Yearly" CTA by default (yearly pre-selected)', () => {
     const { getByText } = render(<PaywallScreen />);
-    // Billed yearly text is only visible when yearly is selected
-    expect(getByText('Billed $71.88/yr')).toBeTruthy();
+    expect(getByText('Start Pro Yearly')).toBeTruthy();
   });
 
-  it('switches to monthly plan when Monthly is pressed', async () => {
-    mockCreateCheckoutSession.mockResolvedValueOnce({ url: 'https://checkout.stripe.com/test' });
+  it('shows yearly billing detail text', () => {
+    const { getByText } = render(<PaywallScreen />);
+    expect(getByText(/billed \$71\.88\/yr/)).toBeTruthy();
+  });
+
+  it('switches CTA to "Start Pro Monthly" when Monthly is pressed', () => {
     const { getByText } = render(<PaywallScreen />);
     fireEvent.press(getByText('Monthly'));
-    await act(async () => { fireEvent.press(getByText('Start Free 7-Day Trial →')); });
-    // Monthly price ID should be used
-    expect(mockCreateCheckoutSession).toHaveBeenCalledWith('price_1TY8noPwwT0D6amwKPNvzhTO');
-  });
-
-  it('uses yearly price ID when Yearly is selected (default)', async () => {
-    mockCreateCheckoutSession.mockResolvedValueOnce({ url: 'https://checkout.stripe.com/test' });
-    const { getByText } = render(<PaywallScreen />);
-    await act(async () => { fireEvent.press(getByText('Start Free 7-Day Trial →')); });
-    expect(mockCreateCheckoutSession).toHaveBeenCalledWith('price_1TY8npPwwT0D6amwuwTPZRm4');
+    expect(getByText('Start Pro Monthly')).toBeTruthy();
   });
 });
 
 // ─── Checkout flow ────────────────────────────────────────────────────────────
-describe('PaywallScreen — checkout', () => {
-  it('opens WebBrowser with checkout URL', async () => {
-    const WebBrowser = require('expo-web-browser');
-    mockCreateCheckoutSession.mockResolvedValueOnce({ url: 'https://checkout.stripe.com/test_session' });
-
+describe('PaywallScreen — checkout (Subscribe tab)', () => {
+  it('calls createCheckoutSession with yearly price ID by default', async () => {
+    mockCreateCheckout.mockResolvedValueOnce({ url: 'https://checkout.stripe.com/test' });
     const { getByText } = render(<PaywallScreen />);
-    await act(async () => { fireEvent.press(getByText('Start Free 7-Day Trial →')); });
-
-    expect(WebBrowser.openBrowserAsync).toHaveBeenCalledWith(
-      'https://checkout.stripe.com/test_session',
-      expect.any(Object),
-    );
+    await act(async () => { fireEvent.press(getByText('Start Pro Yearly')); });
+    expect(mockCreateCheckout).toHaveBeenCalledWith('price_1TY8npPwwT0D6amwuwTPZRm4');
   });
 
-  it('shows checkout error alert on failure', async () => {
-    const Alert = require('react-native').Alert;
-    mockCreateCheckoutSession.mockRejectedValueOnce(new Error('Stripe error'));
-
+  it('calls createCheckoutSession with monthly price ID when Monthly selected', async () => {
+    mockCreateCheckout.mockResolvedValueOnce({ url: 'https://checkout.stripe.com/test' });
     const { getByText } = render(<PaywallScreen />);
-    await act(async () => { fireEvent.press(getByText('Start Free 7-Day Trial →')); });
+    fireEvent.press(getByText('Monthly'));
+    await act(async () => { fireEvent.press(getByText('Start Pro Monthly')); });
+    expect(mockCreateCheckout).toHaveBeenCalledWith('price_1TY8noPwwT0D6amwKPNvzhTO');
+  });
 
-    expect(Alert.alert).toHaveBeenCalledWith('Checkout error', 'Stripe error');
+  it('opens checkout URL via Linking after session created', async () => {
+    mockCreateCheckout.mockResolvedValueOnce({ url: 'https://checkout.stripe.com/test_session' });
+    const { getByText } = render(<PaywallScreen />);
+    await act(async () => { fireEvent.press(getByText('Start Pro Yearly')); });
+    expect(mockOpenURL).toHaveBeenCalledWith('https://checkout.stripe.com/test_session');
+  });
+
+  it('shows alert on checkout failure', async () => {
+    mockCreateCheckout.mockRejectedValueOnce(new Error('Stripe error'));
+    const { getByText } = render(<PaywallScreen />);
+    await act(async () => { fireEvent.press(getByText('Start Pro Yearly')); });
+    expect(mockAlert).toHaveBeenCalledWith(
+      expect.stringContaining('Could not open checkout'),
+    );
+  });
+});
+
+// ─── Pay As You Go tab ────────────────────────────────────────────────────────
+describe('PaywallScreen — Pay As You Go tab', () => {
+  it('shows PAYG content after switching tabs', () => {
+    const { getByText, getAllByText } = render(<PaywallScreen />);
+    fireEvent.press(getByText('Pay As You Go'));
+    expect(getByText('Single Analysis')).toBeTruthy();
+    expect(getByText('10-Pack')).toBeTruthy();
+    expect(getByText('$2.99')).toBeTruthy();
+    expect(getByText('$14.99')).toBeTruthy();
+  });
+
+  it('calls createOneTimeCheckout with single-analysis price on Buy', async () => {
+    mockCreateOneTimeCheckout.mockResolvedValueOnce({ url: 'https://checkout.stripe.com/single' });
+    const { getByText, getAllByText } = render(<PaywallScreen />);
+    fireEvent.press(getByText('Pay As You Go'));
+    const buyButtons = getAllByText('Buy');
+    await act(async () => { fireEvent.press(buyButtons[0]); });
+    expect(mockCreateOneTimeCheckout).toHaveBeenCalledWith('prod_UY0wLBuE0jEPPa');
+  });
+
+  it('calls createOneTimeCheckout with 10-pack price on second Buy', async () => {
+    mockCreateOneTimeCheckout.mockResolvedValueOnce({ url: 'https://checkout.stripe.com/pack' });
+    const { getByText, getAllByText } = render(<PaywallScreen />);
+    fireEvent.press(getByText('Pay As You Go'));
+    const buyButtons = getAllByText('Buy');
+    await act(async () => { fireEvent.press(buyButtons[1]); });
+    expect(mockCreateOneTimeCheckout).toHaveBeenCalledWith('prod_UY0xUfXcea1cti');
+  });
+
+  it('renders upgrade nudge nudging back to Subscribe', () => {
+    const { getByText } = render(<PaywallScreen />);
+    fireEvent.press(getByText('Pay As You Go'));
+    expect(getByText(/Pro saves you money/)).toBeTruthy();
   });
 });
 
@@ -151,23 +198,5 @@ describe('PaywallScreen — close', () => {
     const { getByText } = render(<PaywallScreen />);
     fireEvent.press(getByText('✕'));
     expect(mockGoBack).toHaveBeenCalled();
-  });
-});
-
-// ─── Rotating reviews ─────────────────────────────────────────────────────────
-describe('PaywallScreen — social proof', () => {
-  it('renders a testimonial quote', () => {
-    const { getByText } = render(<PaywallScreen />);
-    // At least one of the three reviews should be visible
-    expect(
-      getByText(/non-compete|HOA fees|lawyer friend/),
-    ).toBeTruthy();
-  });
-
-  it('renders review author attribution', () => {
-    const { getByText } = render(<PaywallScreen />);
-    expect(
-      getByText(/Software Engineer|Homebuyer|Consultant/),
-    ).toBeTruthy();
   });
 });

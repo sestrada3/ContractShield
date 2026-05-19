@@ -1,170 +1,214 @@
 /**
  * Unit tests — API service (api.ts)
- * Tests the axios client wrappers with mocked HTTP responses.
+ * Tests the fetch-based client wrappers with mocked responses.
  */
 
-import axios from 'axios';
 import {
   setAuthToken,
   analyzeDocument,
   getUsage,
   createCheckoutSession,
+  createOneTimeCheckout,
   getPortalUrl,
   getHistory,
   deleteAccount,
 } from '../../services/api';
 
-jest.mock('axios', () => {
-  const mockAxiosInstance = {
-    post:    jest.fn(),
-    get:     jest.fn(),
-    delete:  jest.fn(),
-    defaults: { headers: { common: {} } },
-  };
-  return {
-    __esModule: true,
-    default: {
-      create: jest.fn(() => mockAxiosInstance),
+// ── Mock Supabase so authHeaders() resolves without a real session ────────────
+jest.mock('../services/auth', () => ({
+  supabase: {
+    auth: {
+      getSession: jest.fn().mockResolvedValue({
+        data: { session: { access_token: 'test-jwt-token' } },
+      }),
     },
-    create: jest.fn(() => mockAxiosInstance),
-  };
-});
+  },
+}), { virtual: true });
 
-// Grab the mock instance created by api.ts
-const mockAxios = (axios.create as jest.Mock).mock.results[0]?.value ?? {
-  post: jest.fn(), get: jest.fn(), delete: jest.fn(), defaults: { headers: { common: {} } }
-};
+jest.mock('../../services/auth', () => ({
+  supabase: {
+    auth: {
+      getSession: jest.fn().mockResolvedValue({
+        data: { session: { access_token: 'test-jwt-token' } },
+      }),
+    },
+  },
+}));
+
+// ── Mock global fetch ─────────────────────────────────────────────────────────
+const mockFetch = jest.fn();
+global.fetch = mockFetch;
+
+function mockOk(body: any) {
+  mockFetch.mockResolvedValueOnce({
+    ok: true,
+    json: () => Promise.resolve(body),
+  });
+}
+
+function mockError(status: number, body: any) {
+  mockFetch.mockResolvedValueOnce({
+    ok: false,
+    status,
+    json: () => Promise.resolve(body),
+  });
+}
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockAxios.defaults = { headers: { common: {} } };
 });
 
-// ─── setAuthToken ─────────────────────────────────────────────────────────────
+// ── setAuthToken ──────────────────────────────────────────────────────────────
 describe('setAuthToken', () => {
-  it('sets Authorization header when token provided', () => {
-    setAuthToken('my-jwt-token');
-    expect(mockAxios.defaults.headers.common['Authorization']).toBe('Bearer my-jwt-token');
-  });
-
-  it('removes Authorization header when null passed', () => {
-    mockAxios.defaults.headers.common['Authorization'] = 'Bearer old-token';
-    setAuthToken(null);
-    expect(mockAxios.defaults.headers.common['Authorization']).toBeUndefined();
+  it('is a no-op function (kept for backwards compat)', () => {
+    expect(() => setAuthToken('anything')).not.toThrow();
+    expect(() => setAuthToken(null)).not.toThrow();
   });
 });
 
-// ─── analyzeDocument ─────────────────────────────────────────────────────────
+// ── analyzeDocument ───────────────────────────────────────────────────────────
 describe('analyzeDocument', () => {
-  const mockResult = { score: 7, type: 'NDA', verdict: 'Fair', summary: 'OK', clauses: [], dates: [], positives: [] };
+  const mockResult = {
+    score: 7, type: 'NDA', verdict: 'Fair', summary: 'OK',
+    clauses: [], dates: [], positives: [],
+  };
 
   it('POSTs to /api/analyze with text payload', async () => {
-    mockAxios.post.mockResolvedValueOnce({ data: mockResult });
+    mockOk(mockResult);
     const result = await analyzeDocument({ text: 'Contract text here' });
-    expect(mockAxios.post).toHaveBeenCalledWith(
-      '/api/analyze',
-      { text: 'Contract text here' },
-      expect.objectContaining({ timeout: 60000 }),
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/analyze'),
+      expect.objectContaining({ method: 'POST' }),
     );
     expect(result).toEqual(mockResult);
   });
 
-  it('uses 120s timeout when imageBase64 is provided', async () => {
-    mockAxios.post.mockResolvedValueOnce({ data: mockResult });
-    await analyzeDocument({ imageBase64: 'base64data', imageType: 'image/jpeg' });
-    expect(mockAxios.post).toHaveBeenCalledWith(
-      '/api/analyze',
-      expect.any(Object),
-      expect.objectContaining({ timeout: 120000 }),
-    );
+  it('sends Authorization header from Supabase session', async () => {
+    mockOk(mockResult);
+    await analyzeDocument({ text: 'test' });
+    const [, options] = mockFetch.mock.calls[0];
+    expect(options.headers['Authorization']).toBe('Bearer test-jwt-token');
   });
 
-  it('uses 120s timeout when pdfBase64 is provided', async () => {
-    mockAxios.post.mockResolvedValueOnce({ data: mockResult });
-    await analyzeDocument({ pdfBase64: 'pdfbase64' });
-    expect(mockAxios.post).toHaveBeenCalledWith(
-      '/api/analyze',
-      expect.any(Object),
-      expect.objectContaining({ timeout: 120000 }),
-    );
+  it('sends pdfBase64 in request body', async () => {
+    mockOk(mockResult);
+    await analyzeDocument({ pdfBase64: 'base64pdfdata' });
+    const [, options] = mockFetch.mock.calls[0];
+    const body = JSON.parse(options.body);
+    expect(body.pdfBase64).toBe('base64pdfdata');
   });
 
-  it('uses 60s timeout for text-only payloads', async () => {
-    mockAxios.post.mockResolvedValueOnce({ data: mockResult });
-    await analyzeDocument({ text: 'just text' });
-    expect(mockAxios.post).toHaveBeenCalledWith(
-      '/api/analyze',
-      expect.any(Object),
-      expect.objectContaining({ timeout: 60000 }),
-    );
+  it('sends imageBase64 and imageType in request body', async () => {
+    mockOk(mockResult);
+    await analyzeDocument({ imageBase64: 'imgdata', imageType: 'image/jpeg' });
+    const [, options] = mockFetch.mock.calls[0];
+    const body = JSON.parse(options.body);
+    expect(body.imageBase64).toBe('imgdata');
+    expect(body.imageType).toBe('image/jpeg');
   });
 
-  it('throws when the request fails', async () => {
-    const err = new Error('Network Error');
-    mockAxios.post.mockRejectedValueOnce(err);
+  it('throws structured error on non-ok response', async () => {
+    mockError(402, { error: 'Free limit reached', upgradeRequired: true });
+    await expect(analyzeDocument({ text: 'test' })).rejects.toMatchObject({
+      response: { status: 402, data: { upgradeRequired: true } },
+    });
+  });
+
+  it('throws on network failure', async () => {
+    mockFetch.mockRejectedValueOnce(new Error('Network Error'));
     await expect(analyzeDocument({ text: 'test' })).rejects.toThrow('Network Error');
   });
 });
 
-// ─── getUsage ─────────────────────────────────────────────────────────────────
+// ── getUsage ──────────────────────────────────────────────────────────────────
 describe('getUsage', () => {
   it('GETs /api/usage and returns data', async () => {
     const usageData = { isPro: false, used: 1, limit: 3 };
-    mockAxios.get.mockResolvedValueOnce({ data: usageData });
+    mockOk(usageData);
     const result = await getUsage();
-    expect(mockAxios.get).toHaveBeenCalledWith('/api/usage');
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/usage'),
+      expect.any(Object),
+    );
     expect(result).toEqual(usageData);
+  });
+
+  it('throws on non-ok response', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false });
+    await expect(getUsage()).rejects.toThrow();
   });
 });
 
-// ─── createCheckoutSession ────────────────────────────────────────────────────
+// ── createCheckoutSession ─────────────────────────────────────────────────────
 describe('createCheckoutSession', () => {
   it('POSTs to /api/stripe/checkout with priceId', async () => {
     const sessionData = { url: 'https://checkout.stripe.com/session_abc' };
-    mockAxios.post.mockResolvedValueOnce({ data: sessionData });
+    mockOk(sessionData);
     const result = await createCheckoutSession('price_monthly_123');
-    expect(mockAxios.post).toHaveBeenCalledWith('/api/stripe/checkout', { priceId: 'price_monthly_123' });
+    const [, options] = mockFetch.mock.calls[0];
+    const body = JSON.parse(options.body);
+    expect(body.priceId).toBe('price_monthly_123');
     expect(result).toEqual(sessionData);
   });
 });
 
-// ─── getPortalUrl ─────────────────────────────────────────────────────────────
+// ── createOneTimeCheckout ─────────────────────────────────────────────────────
+describe('createOneTimeCheckout', () => {
+  it('POSTs to /api/stripe/checkout-onetime with priceId', async () => {
+    const sessionData = { url: 'https://checkout.stripe.com/onetime_abc' };
+    mockOk(sessionData);
+    const result = await createOneTimeCheckout('price_credit_1');
+    const [, options] = mockFetch.mock.calls[0];
+    const body = JSON.parse(options.body);
+    expect(body.priceId).toBe('price_credit_1');
+    expect(result).toEqual(sessionData);
+  });
+});
+
+// ── getPortalUrl ──────────────────────────────────────────────────────────────
 describe('getPortalUrl', () => {
   it('POSTs to /api/stripe/portal and returns url', async () => {
     const portalData = { url: 'https://billing.stripe.com/portal_abc' };
-    mockAxios.post.mockResolvedValueOnce({ data: portalData });
+    mockOk(portalData);
     const result = await getPortalUrl();
-    expect(mockAxios.post).toHaveBeenCalledWith('/api/stripe/portal');
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/stripe/portal'),
+      expect.objectContaining({ method: 'POST' }),
+    );
     expect(result).toEqual(portalData);
   });
 });
 
-// ─── getHistory ───────────────────────────────────────────────────────────────
+// ── getHistory ────────────────────────────────────────────────────────────────
 describe('getHistory', () => {
   it('GETs /api/history and returns array', async () => {
     const historyData = [
       { id: 'a1', result: { score: 6 }, created_at: '2025-01-01T00:00:00Z' },
       { id: 'a2', result: { score: 8 }, created_at: '2025-01-02T00:00:00Z' },
     ];
-    mockAxios.get.mockResolvedValueOnce({ data: historyData });
+    mockOk(historyData);
     const result = await getHistory();
-    expect(mockAxios.get).toHaveBeenCalledWith('/api/history');
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/history'),
+      expect.any(Object),
+    );
     expect(result).toEqual(historyData);
   });
 });
 
-// ─── deleteAccount ────────────────────────────────────────────────────────────
+// ── deleteAccount ─────────────────────────────────────────────────────────────
 describe('deleteAccount', () => {
-  it('DELETEs /api/account and returns success', async () => {
-    const successData = { success: true };
-    mockAxios.delete.mockResolvedValueOnce({ data: successData });
-    const result = await deleteAccount();
-    expect(mockAxios.delete).toHaveBeenCalledWith('/api/account');
-    expect(result).toEqual(successData);
+  it('DELETEs /api/account', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({}) });
+    await deleteAccount();
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/account'),
+      expect.objectContaining({ method: 'DELETE' }),
+    );
   });
 
   it('throws when account deletion fails', async () => {
-    mockAxios.delete.mockRejectedValueOnce(new Error('Server error'));
-    await expect(deleteAccount()).rejects.toThrow('Server error');
+    mockFetch.mockResolvedValueOnce({ ok: false, json: () => Promise.resolve({ error: 'Server error' }) });
+    await expect(deleteAccount()).rejects.toThrow();
   });
 });
