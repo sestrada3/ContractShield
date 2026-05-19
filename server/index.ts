@@ -72,6 +72,8 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
 
 app.use(express.json({ limit: '10mb' }));
 
+app.get('/health', (_req, res) => res.json({ ok: true, build: 'v7-early-health' }));
+
 // ── Clients ──────────────────────────────────────────────────────────────────
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 const stripe    = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -278,8 +280,6 @@ app.get('/payment-success', (_req, res) => {
 app.get('/payment-cancel', (_req, res) => {
   res.send(`<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cancelled</title><style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0b0d12;font-family:-apple-system,sans-serif;color:#fff}div{text-align:center;padding:32px}.icon{font-size:64px;margin-bottom:16px}.title{font-size:24px;font-weight:700;margin-bottom:8px}.sub{font-size:14px;color:rgba(255,255,255,0.5)}</style></head><body><div><div class="icon">↩</div><div class="title">No problem!</div><div class="sub">Close this window to return to ContractShield.</div></div></body></html>`);
 });
-
-app.get('/health', (_req, res) => res.json({ ok: true, build: 'v6-https' }));
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
