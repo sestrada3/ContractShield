@@ -4,6 +4,7 @@ import rateLimit from 'express-rate-limit';
 import Anthropic from '@anthropic-ai/sdk';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
+import https from 'https';
 
 const app  = express();
 const port = process.env.PORT || 3001;
@@ -130,13 +131,17 @@ app.post('/api/analyze', rateLimit({ windowMs: 60_000, max: 5 }), requireAuth, a
 
     let raw: string;
 
-    const message = await anthropic.messages.create({
-      model: pdfBase64 ? 'claude-3-5-sonnet-20241022' : 'claude-haiku-4-5-20251001',
-      max_tokens: 2000,
-      system,
-      messages: [{ role: 'user', content }] as any,
-    });
-    raw = (message.content[0] as any).text;
+    if (pdfBase64) {
+      raw = await callAnthropicPDF(process.env.ANTHROPIC_API_KEY!, system, content);
+    } else {
+      const message = await anthropic.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 2000,
+        system,
+        messages: [{ role: 'user' as const, content }],
+      });
+      raw = (message.content[0] as any).text;
+    }
 
     const result = parseJSON(raw);
     if (!result) return res.status(500).json({ error: 'Analysis failed. Please try again.' });
@@ -273,9 +278,52 @@ app.get('/payment-cancel', (_req, res) => {
   res.send(`<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cancelled</title><style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0b0d12;font-family:-apple-system,sans-serif;color:#fff}div{text-align:center;padding:32px}.icon{font-size:64px;margin-bottom:16px}.title{font-size:24px;font-weight:700;margin-bottom:8px}.sub{font-size:14px;color:rgba(255,255,255,0.5)}</style></head><body><div><div class="icon">↩</div><div class="title">No problem!</div><div class="sub">Close this window to return to ContractShield.</div></div></body></html>`);
 });
 
-app.get('/health', (_req, res) => res.json({ ok: true }));
+app.get('/health', (_req, res) => res.json({ ok: true, build: 'v6-https' }));
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+
+function callAnthropicPDF(apiKey: string, system: string, content: any): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify({
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 2000,
+      system,
+      messages: [{ role: 'user', content }],
+    });
+
+    const req = https.request({
+      hostname: 'api.anthropic.com',
+      path: '/v1/messages',
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'content-length': Buffer.byteLength(body),
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'pdfs-2024-09-25',
+      },
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          if (res.statusCode !== 200) {
+            return reject(new Error(json?.error?.message || `API error ${res.statusCode}: ${data.slice(0, 200)}`));
+          }
+          resolve(json.content[0].text);
+        } catch (e) {
+          reject(new Error('Failed to parse Anthropic response: ' + data.slice(0, 200)));
+        }
+      });
+    });
+
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
+
 export const buildPrompt = (text?: string, isPro = false) => {
   const charLimit = isPro ? 20000 : 6000;
   const clean = (text || '')
