@@ -43,7 +43,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
-          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.28)' }}>&copy; 2024 ContractShield. All rights reserved.</p>
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.28)' }}>&copy; 2026 ContractShield. All rights reserved.</p>
           <div className="flex items-center gap-2 text-xs" style={{ color: 'rgba(255,255,255,0.28)' }}>
             <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#4caf7d' }} />
             All systems operational

@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import { Check, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -52,6 +53,7 @@ const plans = [
 ];
 
 export default function Pricing() {
+  const [yearly, setYearly] = useState(true);
   return (
     <section id="pricing" className="py-24 relative overflow-hidden" style={{ background: '#0b0d12' }}>
       <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(ellipse at 50% 100%, rgba(201,168,76,1) 0%, transparent 60%)' }} />
@@ -63,7 +65,24 @@ export default function Pricing() {
             Start free.
             <span style={{ color: '#c9a84c' }}> Upgrade anytime.</span>
           </h2>
-          <p className="text-xl max-w-xl mx-auto" style={{ color: 'rgba(255,255,255,0.55)' }}>No hidden fees. Cancel anytime. Billed via Stripe.</p>
+          <p className="text-xl max-w-xl mx-auto mb-8" style={{ color: 'rgba(255,255,255,0.55)' }}>No hidden fees. Cancel anytime. Billed via Stripe.</p>
+
+          {/* Billing toggle */}
+          <div className="inline-flex items-center gap-1 rounded-xl p-1" style={{ background: '#13161e', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <button
+              onClick={() => setYearly(false)}
+              className="px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200"
+              style={{ background: !yearly ? 'rgba(255,255,255,0.1)' : 'transparent', color: !yearly ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.4)' }}
+            >Monthly</button>
+            <button
+              onClick={() => setYearly(true)}
+              className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200"
+              style={{ background: yearly ? 'rgba(201,168,76,0.12)' : 'transparent', color: yearly ? '#c9a84c' : 'rgba(255,255,255,0.4)' }}
+            >
+              Yearly
+              <span className="text-[10px] font-black px-1.5 py-0.5 rounded" style={{ background: '#4caf7d', color: '#0b0d12' }}>SAVE 40%</span>
+            </button>
+          </div>
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
@@ -81,7 +100,7 @@ export default function Pricing() {
               </div>
               <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>Try ContractShield risk-free.</p>
             </div>
-            <a href="#download" className="w-full text-center font-bold py-3.5 rounded-xl transition-all duration-200 text-sm mb-8" style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.88)' }}>Download Free</a>
+            <a href="#download" className="w-full text-center font-bold py-3.5 rounded-xl transition-all duration-200 text-sm mb-8" style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.88)' }}>Join the Waitlist</a>
             <div className="flex flex-col gap-3 flex-1">
               {plans[0].features.map((feature) => (
                 <div key={feature} className="flex items-start gap-3">
@@ -109,25 +128,20 @@ export default function Pricing() {
               </div>
             </div>
 
-            {/* Plan toggle */}
+            {/* Price display */}
             <div className="mb-4">
               <h3 className="text-white font-bold text-xl mb-3">Pro</h3>
-              <div className="grid grid-cols-2 gap-2 mb-4">
-                {[
-                  { label: 'Monthly', price: '$9.99/mo', sub: '' },
-                  { label: 'Yearly', price: '$5.99/mo', sub: 'Billed $71.88/yr · Save 40%' },
-                ].map(({ label, price, sub }) => (
-                  <div key={label} className="rounded-xl p-3 text-center" style={{ background: label === 'Yearly' ? 'rgba(201,168,76,0.1)' : 'rgba(255,255,255,0.04)', border: label === 'Yearly' ? '1px solid rgba(201,168,76,0.4)' : '1px solid rgba(255,255,255,0.08)' }}>
-                    {label === 'Yearly' && <div className="text-[9px] font-black tracking-wider mb-1 px-1.5 py-0.5 rounded inline-block" style={{ background: '#4caf7d', color: '#0b0d12' }}>SAVE 40%</div>}
-                    <p className="text-xs mb-1" style={{ color: label === 'Yearly' ? '#c9a84c' : 'rgba(255,255,255,0.4)' }}>{label}</p>
-                    <p className="text-lg font-black" style={{ color: label === 'Yearly' ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.55)' }}>{price}</p>
-                    {sub && <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{sub}</p>}
-                  </div>
-                ))}
+              <div className="flex items-end gap-2 mb-1">
+                <span className="text-5xl font-black text-white">{yearly ? '$5.99' : '$9.99'}</span>
+                <span className="text-sm pb-2" style={{ color: 'rgba(255,255,255,0.4)' }}>/ month</span>
               </div>
+              {yearly
+                ? <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>Billed $71.88/yr &middot; saves you $48/yr vs monthly</p>
+                : <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>Billed monthly &middot; switch to yearly to save 40%</p>
+              }
             </div>
 
-            <a href="#download" className="w-full text-center font-bold py-3.5 rounded-xl transition-all duration-200 text-sm mb-2" style={{ background: '#c9a84c', color: '#0b0d12' }}>Start Free 7-Day Trial →</a>
+            <a href="#download" className="w-full text-center font-bold py-3.5 rounded-xl transition-all duration-200 text-sm mb-2" style={{ background: '#c9a84c', color: '#0b0d12' }}>Join Waitlist — Free 7-Day Trial Included →</a>
             <p className="text-center text-xs mb-6" style={{ color: 'rgba(255,255,255,0.35)' }}>No charge today · Cancel anytime before trial ends</p>
 
             <div className="flex flex-col gap-3 flex-1">

@@ -3,6 +3,7 @@ import Hero from '@/components/Hero';
 import Features from '@/components/Features';
 import HowItWorks from '@/components/HowItWorks';
 import Pricing from '@/components/Pricing';
+import FAQ from '@/components/FAQ';
 import MobileApp from '@/components/MobileApp';
 import Footer from '@/components/Footer';
 
@@ -14,6 +15,7 @@ export default function Home() {
       <Features />
       <HowItWorks />
       <Pricing />
+      <FAQ />
       <MobileApp />
       <Footer />
     </main>

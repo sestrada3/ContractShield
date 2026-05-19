@@ -78,7 +78,7 @@ export default function HowItWorks() {
         </div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.4 }} className="text-center mt-16">
-          <a href="#download" className="inline-flex items-center gap-2 font-bold px-8 py-4 rounded-xl transition-all duration-200 shadow-xl text-base" style={{ background: '#c9a84c', color: '#0b0d12' }}>Download Free — No Credit Card Needed</a>
+          <a href="#download" className="inline-flex items-center gap-2 font-bold px-8 py-4 rounded-xl transition-all duration-200 shadow-xl text-base" style={{ background: '#c9a84c', color: '#0b0d12' }}>Join the Waitlist — Free, No Credit Card</a>
         </motion.div>
       </div>
     </section>

@@ -33,7 +33,7 @@ export default function Navbar() {
           </div>
           <div className="hidden md:flex items-center gap-4">
             <a href="#pricing" className="text-white/55 hover:text-white text-sm font-medium transition-colors">Sign In</a>
-            <a href="#pricing" className="bg-gold-500 hover:bg-gold-400 text-dark-950 font-semibold text-sm px-5 py-2.5 rounded-xl transition-all duration-200 shadow-lg">Start Free Trial</a>
+            <a href="#download" className="bg-gold-500 hover:bg-gold-400 text-dark-950 font-semibold text-sm px-5 py-2.5 rounded-xl transition-all duration-200 shadow-lg">Join Waitlist</a>
           </div>
           <button className="md:hidden text-white/55 hover:text-white p-1" onClick={() => setIsOpen(!isOpen)} aria-label="Toggle menu">
             {isOpen ? <X size={24} /> : <Menu size={24} />}
@@ -46,7 +46,7 @@ export default function Navbar() {
             {navLinks.map((link) => (
               <a key={link.href} href={link.href} onClick={() => setIsOpen(false)} className="text-white/55 hover:text-white font-medium transition-colors py-1">{link.label}</a>
             ))}
-            <a href="#pricing" onClick={() => setIsOpen(false)} className="bg-gold-500 hover:bg-gold-400 text-dark-950 font-semibold text-center px-5 py-3 rounded-xl transition-colors mt-2">Start Free Trial</a>
+            <a href="#download" onClick={() => setIsOpen(false)} className="bg-gold-500 hover:bg-gold-400 text-dark-950 font-semibold text-center px-5 py-3 rounded-xl transition-colors mt-2">Join Waitlist</a>
           </div>
         </div>
       )}

@@ -96,7 +96,7 @@ export default function Hero() {
 
             <div className="flex flex-wrap gap-4">
               <a href="#download" className="group flex items-center gap-2 font-bold px-7 py-4 rounded-xl transition-all duration-200 shadow-xl text-base" style={{ background: '#c9a84c', color: '#0b0d12' }}>
-                Download Free
+                Join Waitlist
                 <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
               </a>
               <a href="#pricing" className="flex items-center gap-2 font-semibold px-7 py-4 rounded-xl transition-all duration-200 text-base" style={{ border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.88)' }}>
