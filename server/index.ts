@@ -131,28 +131,14 @@ app.post('/api/analyze', rateLimit({ windowMs: 60_000, max: 5 }), requireAuth, a
     let raw: string;
 
     if (pdfBase64) {
-      // Call Anthropic API directly so we control the beta header precisely
-      const apiRes = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-api-key': process.env.ANTHROPIC_API_KEY!,
-          'anthropic-version': '2023-06-01',
-          'anthropic-beta': 'pdfs-2024-09-25',
-        },
-        body: JSON.stringify({
-          model: 'claude-3-5-sonnet-20241022',
-          max_tokens: 2000,
-          system,
-          messages: [{ role: 'user', content }],
-        }),
+      const msg: any = await anthropic.beta.messages.create({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 2000,
+        system,
+        messages: [{ role: 'user', content }] as any,
+        betas: ['pdfs-2024-09-25'],
       });
-      const apiJson: any = await apiRes.json();
-      if (!apiRes.ok) {
-        console.error('Anthropic PDF error:', JSON.stringify(apiJson));
-        return res.status(500).json({ error: apiJson?.error?.message || 'PDF analysis failed.' });
-      }
-      raw = apiJson.content[0].text;
+      raw = msg.content[0].text;
     } else {
       const message = await anthropic.messages.create({
         model: 'claude-haiku-4-5-20251001',
