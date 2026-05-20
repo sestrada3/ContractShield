@@ -10,12 +10,7 @@ import Svg, { Circle } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
 import { useStore, Clause, KeyDate } from '../services/store';
-
-const C = {
-  bg:'#0d0f15', surf:'#171b26', hi:'#1e2333',
-  gold:'#c9a84c', red:'#e05252', amber:'#e0993a', green:'#4caf7d', blue:'#4a9eff',
-  t:'rgba(255,255,255,0.92)', tm:'rgba(255,255,255,0.55)', td:'rgba(255,255,255,0.28)',
-};
+import { C } from '../theme';
 const RISK  = { high:{c:C.red,bg:'rgba(224,82,82,0.11)',l:'HIGH RISK'}, medium:{c:C.amber,bg:'rgba(224,153,58,0.11)',l:'CAUTION'}, low:{c:C.green,bg:'rgba(76,175,125,0.10)',l:'FAVORABLE'} };
 const BENCH = { aggressive:{c:C.red,i:'⚠',l:'Aggressive'}, unusual:{c:C.amber,i:'◈',l:'Unusual'}, standard:{c:C.tm,i:'◇',l:'Standard'}, favorable:{c:C.green,i:'✦',l:'Favorable'} };
 const riskOf  = (r: string) => RISK[r as keyof typeof RISK]  || RISK.medium;
@@ -224,6 +219,22 @@ export default function ResultsScreen() {
           </View>
         </View>
 
+        {/* Positives — shown first to set a balanced tone before risks */}
+        {positives.length > 0 && (
+          <View style={[rs.section, rs.positivesBox]}>
+            <View style={rs.sectionHeader}>
+              <Ionicons name="checkmark-circle-outline" size={13} color={C.green}/>
+              <Text style={[rs.sectionTitle, { color: C.green }]}>WORKS IN YOUR FAVOR</Text>
+            </View>
+            {positives.map((p, i) => (
+              <View key={i} style={{ flexDirection: 'row', gap: 8, marginBottom: 6 }}>
+                <Text style={{ color: C.green, fontSize: 12, marginTop: 2 }}>•</Text>
+                <Text style={{ fontSize: 13, color: C.tm, lineHeight: 20, flex: 1 }}>{String(p)}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* Key dates */}
         {dates.length > 0 && (
           <View style={rs.section}>
@@ -254,21 +265,14 @@ export default function ResultsScreen() {
           </View>
         )}
 
-        {/* Positives */}
-        {positives.length > 0 && (
-          <View style={[rs.section, rs.positivesBox]}>
-            <View style={rs.sectionHeader}>
-              <Ionicons name="checkmark-circle-outline" size={13} color={C.green}/>
-              <Text style={[rs.sectionTitle, { color: C.green }]}>WORKS IN YOUR FAVOR</Text>
-            </View>
-            {positives.map((p, i) => (
-              <View key={i} style={{ flexDirection: 'row', gap: 8, marginBottom: 6 }}>
-                <Text style={{ color: C.green, fontSize: 12, marginTop: 2 }}>•</Text>
-                <Text style={{ fontSize: 13, color: C.tm, lineHeight: 20, flex: 1 }}>{String(p)}</Text>
-              </View>
-            ))}
-          </View>
-        )}
+        {/* Bottom CTA */}
+        <TouchableOpacity
+          style={rs.analyzeAnotherBtn}
+          onPress={() => { clearResult(); navigation.goBack(); }}
+        >
+          <Ionicons name="add-circle-outline" size={16} color={C.gold}/>
+          <Text style={rs.analyzeAnotherText}>Analyze Another Document</Text>
+        </TouchableOpacity>
 
         <Text style={rs.disclaimer}>Informational only · Not legal advice</Text>
       </ScrollView>
@@ -321,6 +325,8 @@ const rs = StyleSheet.create({
   section:      { marginBottom: 18 },
   sectionHeader:{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
   sectionTitle: { fontSize: 10, color: C.td, letterSpacing: 2, textTransform: 'uppercase' },
-  positivesBox: { backgroundColor: 'rgba(76,175,125,0.07)', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: 'rgba(76,175,125,0.18)' },
-  disclaimer:   { textAlign: 'center', fontSize: 10, color: C.td, lineHeight: 16, marginTop: 10 },
+  positivesBox:       { backgroundColor: 'rgba(76,175,125,0.07)', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: 'rgba(76,175,125,0.18)' },
+  analyzeAnotherBtn:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8, marginBottom: 4, paddingVertical: 16, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(201,168,76,0.25)', backgroundColor: 'rgba(201,168,76,0.07)' },
+  analyzeAnotherText: { fontSize: 14, fontWeight: '700', color: C.gold },
+  disclaimer:         { textAlign: 'center', fontSize: 10, color: C.td, lineHeight: 16, marginTop: 12 },
 });
