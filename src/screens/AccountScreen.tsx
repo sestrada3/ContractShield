@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Alert, ActivityIndicator, Animated,
+  Alert, ActivityIndicator, Animated, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -260,7 +260,7 @@ export default function AccountScreen() {
         <View style={s.card}>
           <TouchableOpacity
             style={s.row}
-            onPress={() => WebBrowser.openBrowserAsync('https://contractshield-backend.vercel.app/support')}
+            onPress={() => Linking.openURL('mailto:support@getcontractshield.app')}
           >
             <Text style={s.rowLabel}>Help & Support</Text>
             <Ionicons name="chevron-forward" size={14} color={C.td}/>
@@ -268,7 +268,7 @@ export default function AccountScreen() {
           <View style={s.divider}/>
           <TouchableOpacity
             style={s.row}
-            onPress={() => WebBrowser.openBrowserAsync('https://contractshield-backend.vercel.app/privacy')}
+            onPress={() => WebBrowser.openBrowserAsync('https://getcontractshield.app/privacy.html')}
           >
             <Text style={s.rowLabel}>Privacy Policy</Text>
             <Ionicons name="chevron-forward" size={14} color={C.td}/>
@@ -276,7 +276,7 @@ export default function AccountScreen() {
           <View style={s.divider}/>
           <TouchableOpacity
             style={s.row}
-            onPress={() => WebBrowser.openBrowserAsync('https://contractshield-backend.vercel.app/terms')}
+            onPress={() => WebBrowser.openBrowserAsync('https://getcontractshield.app/terms.html')}
           >
             <Text style={s.rowLabel}>Terms of Service</Text>
             <Ionicons name="chevron-forward" size={14} color={C.td}/>
