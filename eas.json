@@ -6,13 +6,28 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://contractshield-backend-9bu6593bx-sestrada3s-projects.vercel.app",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://kbyomufqunenlxzihltn.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtieW9tdWZxdW5lbmx4emlobHRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTE4NDgsImV4cCI6MjA5NDM2Nzg0OH0.-L7EzIq4MPRpWNwidzWECGoAudesDxDi56jl2TJ3VOM"
+      }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://contractshield-backend-9bu6593bx-sestrada3s-projects.vercel.app",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://kbyomufqunenlxzihltn.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtieW9tdWZxdW5lbmx4emlobHRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTE4NDgsImV4cCI6MjA5NDM2Nzg0OH0.-L7EzIq4MPRpWNwidzWECGoAudesDxDi56jl2TJ3VOM"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://contractshield-backend-9bu6593bx-sestrada3s-projects.vercel.app",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://kbyomufqunenlxzihltn.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtieW9tdWZxdW5lbmx4emlobHRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTE4NDgsImV4cCI6MjA5NDM2Nzg0OH0.-L7EzIq4MPRpWNwidzWECGoAudesDxDi56jl2TJ3VOM"
+      }
     }
   },
   "submit": {
