@@ -1,7 +1,6 @@
 {
   "version": 2,
-  "routes": [
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html" }
-  ]
+  "buildCommand": "echo static",
+  "outputDirectory": "public",
+  "framework": null
 }
