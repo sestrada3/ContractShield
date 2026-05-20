@@ -11,9 +11,13 @@ import { useNavigation } from '@react-navigation/native';
 import { createCheckoutSession, createOneTimeCheckout } from '../services/api';
 import { C } from '../theme';
 
+// IMPORTANT: perAnalysis and creditPack must be Stripe PRICE IDs (price_xxx),
+// not product IDs (prod_xxx). Get them from your Stripe Dashboard → Products,
+// then set EXPO_PUBLIC_STRIPE_PRICE_CREDIT_1 and EXPO_PUBLIC_STRIPE_PRICE_CREDIT_10
+// in your .env / EAS secrets to match the STRIPE_PRICE_CREDIT_1/10 server env vars.
 const PRICES = {
-  perAnalysis: 'prod_UY0wLBuE0jEPPa',
-  creditPack:  'prod_UY0xUfXcea1cti',
+  perAnalysis: process.env.EXPO_PUBLIC_STRIPE_PRICE_CREDIT_1  || 'price_REPLACE_WITH_SINGLE_ANALYSIS_PRICE_ID',
+  creditPack:  process.env.EXPO_PUBLIC_STRIPE_PRICE_CREDIT_10 || 'price_REPLACE_WITH_10_PACK_PRICE_ID',
   monthly:     'price_1TY8noPwwT0D6amwKPNvzhTO',
   yearly:      'price_1TY8npPwwT0D6amwuwTPZRm4',
 };

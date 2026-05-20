@@ -12,13 +12,16 @@ import { useStore } from '../../services/store';
 // ─── Service mocks ────────────────────────────────────────────────────────────
 const mockNavigate = jest.fn();
 const mockAnalyzeDocument = jest.fn();
+const mockGetUsage = jest.fn().mockResolvedValue({ isPro: false, used: 1, limit: 3 });
 
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ navigate: mockNavigate, goBack: jest.fn() }),
+  useFocusEffect: jest.fn(), // no-op: avoids async state updates outside act()
 }));
 
 jest.mock('../../services/api', () => ({
   analyzeDocument: (...args: any[]) => mockAnalyzeDocument(...args),
+  getUsage: (...args: any[]) => mockGetUsage(...args),
 }));
 
 jest.spyOn(require('react-native').Alert, 'alert').mockImplementation(() => {});

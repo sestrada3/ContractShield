@@ -42,7 +42,11 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
         if (!userId) break;
 
         if (session.mode === 'subscription') {
-          await supabase.from('profiles').update({ is_pro: true }).eq('id', userId);
+          // Also persist the Stripe customer ID so the billing portal can look it up
+          await supabase.from('profiles').update({
+            is_pro: true,
+            stripe_customer_id: session.customer,
+          }).eq('id', userId);
         }
 
         if (session.mode === 'payment') {
@@ -55,11 +59,20 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
         }
         break;
       }
-      case 'customer.subscription.deleted':
-      case 'invoice.payment_failed': {
-        const obj    = event.data.object as any;
-        const userId = obj.metadata?.userId;
+      case 'customer.subscription.deleted': {
+        // Subscription objects carry metadata.userId set at checkout time
+        const sub    = event.data.object as any;
+        const userId = sub.metadata?.userId;
         if (userId) await supabase.from('profiles').update({ is_pro: false }).eq('id', userId);
+        break;
+      }
+      case 'invoice.payment_failed': {
+        // Invoice objects don't carry metadata.userId — look up the user by stripe_customer_id
+        const invoice    = event.data.object as any;
+        const customerId = invoice.customer as string;
+        if (customerId) {
+          await supabase.from('profiles').update({ is_pro: false }).eq('stripe_customer_id', customerId);
+        }
         break;
       }
     }
@@ -167,12 +180,14 @@ app.post('/api/analyze', rateLimit({ windowMs: 60_000, max: 5 }), requireAuth, a
     const result = parseJSON(raw);
     if (!result) return res.status(500).json({ error: 'Analysis failed. Please try again.' });
 
-    // Deduct usage
+    // Deduct usage — upsert so a missing profile row doesn't silently skip tracking
     if (!isPro) {
       if (credits > 0) {
-        await supabase.from('profiles').update({ credits: credits - 1 }).eq('id', userId);
+        await supabase.from('profiles')
+          .upsert({ id: userId, credits: credits - 1 }, { onConflict: 'id' });
       } else {
-        await supabase.from('profiles').update({ free_analyses_used: used + 1 }).eq('id', userId);
+        await supabase.from('profiles')
+          .upsert({ id: userId, free_analyses_used: used + 1 }, { onConflict: 'id' });
       }
     }
 

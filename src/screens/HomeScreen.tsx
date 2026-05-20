@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   TextInput, ActivityIndicator, Alert, Image, Animated
@@ -10,8 +10,8 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as Haptics from 'expo-haptics';
-import { useNavigation } from '@react-navigation/native';
-import { analyzeDocument } from '../services/api';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { analyzeDocument, getUsage } from '../services/api';
 import { useStore } from '../services/store';
 import { C } from '../theme';
 
@@ -54,13 +54,22 @@ function LoadingOverlay({ onCancel }: { onCancel: () => void }) {
 
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
-  const { setResult, setAnalyzing, setError, isAnalyzing, isPro, freeUsed, freeLimit } = useStore();
+  const { setResult, setAnalyzing, setError, setIsPro, setUsage, isAnalyzing, isPro, freeUsed, freeLimit } = useStore();
 
   const [text, setText]           = useState('');
   const [fileName, setFileName]   = useState('');
   const [imageData, setImageData] = useState<{base64: string; type: string} | null>(null);
   const [pdfBase64, setPdfBase64] = useState<string | null>(null);
   const cancelled = useRef(false);
+
+  // Sync usage every time this screen comes into focus (catches upgrades from Paywall)
+  useFocusEffect(
+    useCallback(() => {
+      getUsage()
+        .then(u => { setIsPro(u.isPro); setUsage(u.used, u.limit); })
+        .catch(() => {});
+    }, [])
+  );
 
   const canAnalyze = isPro || freeUsed < freeLimit;
   const hasInput   = text.trim().length > 0 || !!imageData || !!pdfBase64;
@@ -140,6 +149,8 @@ export default function HomeScreen() {
       });
       if (cancelled.current) return;
       setResult(result);
+      // Immediately refresh usage so the counter counts down without waiting for next focus
+      getUsage().then(u => { setIsPro(u.isPro); setUsage(u.used, u.limit); }).catch(() => {});
       setText('');
       setImageData(null);
       setPdfBase64(null);

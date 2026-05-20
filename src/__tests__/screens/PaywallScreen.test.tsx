@@ -11,11 +11,12 @@ import PaywallScreen from '../../screens/PaywallScreen';
 import { useStore } from '../../services/store';
 
 const mockGoBack              = jest.fn();
+const mockNavigate            = jest.fn();
 const mockCreateCheckout      = jest.fn();
 const mockCreateOneTimeCheckout = jest.fn();
 
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ navigate: jest.fn(), goBack: mockGoBack }),
+  useNavigation: () => ({ navigate: mockNavigate, goBack: mockGoBack }),
 }));
 
 jest.mock('../../services/api', () => ({
@@ -49,7 +50,7 @@ describe('PaywallScreen — rendering', () => {
 
   it('renders hero subtitle', () => {
     const { getByText } = render(<PaywallScreen />);
-    expect(getByText(/Stop signing contracts/)).toBeTruthy();
+    expect(getByText(/Know exactly what you're signing/)).toBeTruthy();
   });
 
   it('renders Subscribe and Pay As You Go tabs', () => {
@@ -59,11 +60,11 @@ describe('PaywallScreen — rendering', () => {
   });
 
   it('renders all Pro feature list items', () => {
-    const { getByText } = render(<PaywallScreen />);
+    const { getByText, getAllByText } = render(<PaywallScreen />);
     expect(getByText(/Unlimited contract analyses/)).toBeTruthy();
     expect(getByText(/Full clause risk breakdowns/)).toBeTruthy();
     expect(getByText(/Market benchmarking/)).toBeTruthy();
-    expect(getByText(/negotiation scripts/)).toBeTruthy();
+    expect(getAllByText(/negotiation scripts/)[0]).toBeTruthy();
     expect(getByText(/Key date/)).toBeTruthy();
     expect(getByText(/Full analysis history/)).toBeTruthy();
     expect(getByText(/Priority support/)).toBeTruthy();
@@ -86,9 +87,14 @@ describe('PaywallScreen — rendering', () => {
     expect(getByText('BEST VALUE')).toBeTruthy();
   });
 
-  it('renders billing disclaimer', () => {
+  it('renders yearly billing detail text', () => {
     const { getByText } = render(<PaywallScreen />);
-    expect(getByText(/Billed via Stripe/)).toBeTruthy();
+    expect(getByText(/billed \$71\.88\/yr/)).toBeTruthy();
+  });
+
+  it('renders savings anchor text', () => {
+    const { getByText } = render(<PaywallScreen />);
+    expect(getByText(/Save \$47\.88 vs monthly/)).toBeTruthy();
   });
 
   it('renders Free Tier comparison section', () => {
@@ -97,28 +103,23 @@ describe('PaywallScreen — rendering', () => {
     expect(getByText(/3 free analyses/)).toBeTruthy();
   });
 
-  it('renders close button', () => {
+  it('renders testimonial section', () => {
     const { getByText } = render(<PaywallScreen />);
-    expect(getByText('✕')).toBeTruthy();
+    expect(getByText(/What our users say/i)).toBeTruthy();
   });
 });
 
 // ─── Plan selection ───────────────────────────────────────────────────────────
 describe('PaywallScreen — plan selection', () => {
-  it('shows "Start Pro Yearly" CTA by default (yearly pre-selected)', () => {
+  it('shows yearly CTA by default (yearly pre-selected)', () => {
     const { getByText } = render(<PaywallScreen />);
-    expect(getByText('Start Pro Yearly')).toBeTruthy();
+    expect(getByText('Start Pro — $5.99/mo')).toBeTruthy();
   });
 
-  it('shows yearly billing detail text', () => {
-    const { getByText } = render(<PaywallScreen />);
-    expect(getByText(/billed \$71\.88\/yr/)).toBeTruthy();
-  });
-
-  it('switches CTA to "Start Pro Monthly" when Monthly is pressed', () => {
+  it('switches CTA to monthly price when Monthly is pressed', () => {
     const { getByText } = render(<PaywallScreen />);
     fireEvent.press(getByText('Monthly'));
-    expect(getByText('Start Pro Monthly')).toBeTruthy();
+    expect(getByText('Start Pro — $9.99/mo')).toBeTruthy();
   });
 });
 
@@ -127,7 +128,7 @@ describe('PaywallScreen — checkout (Subscribe tab)', () => {
   it('calls createCheckoutSession with yearly price ID by default', async () => {
     mockCreateCheckout.mockResolvedValueOnce({ url: 'https://checkout.stripe.com/test' });
     const { getByText } = render(<PaywallScreen />);
-    await act(async () => { fireEvent.press(getByText('Start Pro Yearly')); });
+    await act(async () => { fireEvent.press(getByText('Start Pro — $5.99/mo')); });
     expect(mockCreateCheckout).toHaveBeenCalledWith('price_1TY8npPwwT0D6amwuwTPZRm4');
   });
 
@@ -135,21 +136,21 @@ describe('PaywallScreen — checkout (Subscribe tab)', () => {
     mockCreateCheckout.mockResolvedValueOnce({ url: 'https://checkout.stripe.com/test' });
     const { getByText } = render(<PaywallScreen />);
     fireEvent.press(getByText('Monthly'));
-    await act(async () => { fireEvent.press(getByText('Start Pro Monthly')); });
+    await act(async () => { fireEvent.press(getByText('Start Pro — $9.99/mo')); });
     expect(mockCreateCheckout).toHaveBeenCalledWith('price_1TY8noPwwT0D6amwKPNvzhTO');
   });
 
   it('opens checkout URL via Linking after session created', async () => {
     mockCreateCheckout.mockResolvedValueOnce({ url: 'https://checkout.stripe.com/test_session' });
     const { getByText } = render(<PaywallScreen />);
-    await act(async () => { fireEvent.press(getByText('Start Pro Yearly')); });
+    await act(async () => { fireEvent.press(getByText('Start Pro — $5.99/mo')); });
     expect(mockOpenURL).toHaveBeenCalledWith('https://checkout.stripe.com/test_session');
   });
 
   it('shows alert on checkout failure', async () => {
     mockCreateCheckout.mockRejectedValueOnce(new Error('Stripe error'));
     const { getByText } = render(<PaywallScreen />);
-    await act(async () => { fireEvent.press(getByText('Start Pro Yearly')); });
+    await act(async () => { fireEvent.press(getByText('Start Pro — $5.99/mo')); });
     expect(mockAlert).toHaveBeenCalledWith(
       expect.stringContaining('Could not open checkout'),
     );
@@ -159,7 +160,7 @@ describe('PaywallScreen — checkout (Subscribe tab)', () => {
 // ─── Pay As You Go tab ────────────────────────────────────────────────────────
 describe('PaywallScreen — Pay As You Go tab', () => {
   it('shows PAYG content after switching tabs', () => {
-    const { getByText, getAllByText } = render(<PaywallScreen />);
+    const { getByText } = render(<PaywallScreen />);
     fireEvent.press(getByText('Pay As You Go'));
     expect(getByText('Single Analysis')).toBeTruthy();
     expect(getByText('10-Pack')).toBeTruthy();
@@ -167,22 +168,25 @@ describe('PaywallScreen — Pay As You Go tab', () => {
     expect(getByText('$14.99')).toBeTruthy();
   });
 
-  it('calls createOneTimeCheckout with single-analysis price on Buy', async () => {
+  it('calls createOneTimeCheckout with a price_ ID (not prod_) for single analysis', async () => {
     mockCreateOneTimeCheckout.mockResolvedValueOnce({ url: 'https://checkout.stripe.com/single' });
     const { getByText, getAllByText } = render(<PaywallScreen />);
     fireEvent.press(getByText('Pay As You Go'));
     const buyButtons = getAllByText('Buy');
     await act(async () => { fireEvent.press(buyButtons[0]); });
-    expect(mockCreateOneTimeCheckout).toHaveBeenCalledWith('prod_UY0wLBuE0jEPPa');
+    // Must send a price_ ID, not a prod_ ID
+    const calledWith = mockCreateOneTimeCheckout.mock.calls[0][0] as string;
+    expect(calledWith).toMatch(/^price_/);
   });
 
-  it('calls createOneTimeCheckout with 10-pack price on second Buy', async () => {
+  it('calls createOneTimeCheckout with a price_ ID (not prod_) for 10-pack', async () => {
     mockCreateOneTimeCheckout.mockResolvedValueOnce({ url: 'https://checkout.stripe.com/pack' });
     const { getByText, getAllByText } = render(<PaywallScreen />);
     fireEvent.press(getByText('Pay As You Go'));
     const buyButtons = getAllByText('Buy');
     await act(async () => { fireEvent.press(buyButtons[1]); });
-    expect(mockCreateOneTimeCheckout).toHaveBeenCalledWith('prod_UY0xUfXcea1cti');
+    const calledWith = mockCreateOneTimeCheckout.mock.calls[0][0] as string;
+    expect(calledWith).toMatch(/^price_/);
   });
 
   it('renders upgrade nudge nudging back to Subscribe', () => {
@@ -195,8 +199,12 @@ describe('PaywallScreen — Pay As You Go tab', () => {
 // ─── Close button ─────────────────────────────────────────────────────────────
 describe('PaywallScreen — close', () => {
   it('navigates back when close button is pressed', () => {
-    const { getByText } = render(<PaywallScreen />);
-    fireEvent.press(getByText('✕'));
+    // Close button renders an Ionicons icon inside TouchableOpacity
+    const { UNSAFE_getAllByType } = render(<PaywallScreen />);
+    const { TouchableOpacity } = require('react-native');
+    // The first TouchableOpacity on the screen is the close button
+    const touchables = UNSAFE_getAllByType(TouchableOpacity);
+    fireEvent.press(touchables[0]);
     expect(mockGoBack).toHaveBeenCalled();
   });
 });
