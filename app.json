@@ -16,7 +16,8 @@
       "bundleIdentifier": "com.contractshield.app",
       "infoPlist": {
         "NSCameraUsageDescription": "Take photos of contracts to analyze them",
-        "NSPhotoLibraryUsageDescription": "Upload contract images from your photo library"
+        "NSPhotoLibraryUsageDescription": "Upload contract images from your photo library",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -26,8 +27,9 @@
       },
       "package": "com.contractshield.app",
       "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE"
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "plugins": [
@@ -47,6 +49,11 @@
       "expo-secure-store"
     ],
     "scheme": "contractshield",
-    "extra": {}
+    "extra": {
+      "eas": {
+        "projectId": "793a4d6a-48c0-4575-9d1b-c52a456c4dc7"
+      }
+    },
+    "owner": "sestrada3"
   }
 }
