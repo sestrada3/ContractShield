@@ -46,7 +46,7 @@ export default function App() {
       if (session) {
         setUser(session.user);
         setAuthToken(session.access_token);
-        await syncUsage();
+        syncUsage(); // fire-and-forget — don't block app startup on a network call
       }
       setReady(true);
     };
