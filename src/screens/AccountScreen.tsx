@@ -166,13 +166,24 @@ export default function AccountScreen() {
             </View>
           </View>
 
-          {!isPro && (
+          {isPro ? (
             <View style={s.row}>
-              <Text style={s.rowLabel}>Analyses remaining</Text>
-              <Text style={s.rowValue}>
-                {credits > 0 ? `${credits} credit${credits !== 1 ? 's' : ''}` : `${Math.max(0, freeLimit - freeUsed)} of ${freeLimit}`}
-              </Text>
+              <Text style={s.rowLabel}>Analyses</Text>
+              <Text style={s.rowValue}>Unlimited</Text>
             </View>
+          ) : (
+            <>
+              {credits > 0 && (
+                <View style={s.row}>
+                  <Text style={s.rowLabel}>Paid credits</Text>
+                  <Text style={[s.rowValue, { color: C.gold }]}>{credits} remaining</Text>
+                </View>
+              )}
+              <View style={s.row}>
+                <Text style={s.rowLabel}>Free analyses</Text>
+                <Text style={s.rowValue}>{Math.max(0, freeLimit - freeUsed)} of {freeLimit} used</Text>
+              </View>
+            </>
           )}
 
           <View style={s.divider}/>
