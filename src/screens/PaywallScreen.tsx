@@ -16,8 +16,8 @@ import { C } from '../theme';
 // then set EXPO_PUBLIC_STRIPE_PRICE_CREDIT_1 and EXPO_PUBLIC_STRIPE_PRICE_CREDIT_10
 // in your .env / EAS secrets to match the STRIPE_PRICE_CREDIT_1/10 server env vars.
 const PRICES = {
-  perAnalysis: process.env.EXPO_PUBLIC_STRIPE_PRICE_CREDIT_1  || 'price_REPLACE_WITH_SINGLE_ANALYSIS_PRICE_ID',
-  creditPack:  process.env.EXPO_PUBLIC_STRIPE_PRICE_CREDIT_10 || 'price_REPLACE_WITH_10_PACK_PRICE_ID',
+  perAnalysis: process.env.EXPO_PUBLIC_STRIPE_PRICE_CREDIT_1  || 'price_1TYuudPwwT0D6amwxOSm2OlZ',
+  creditPack:  process.env.EXPO_PUBLIC_STRIPE_PRICE_CREDIT_10 || 'price_1TYuvIPwwT0D6amwWjbCGLss',
   monthly:     'price_1TY8noPwwT0D6amwKPNvzhTO',
   yearly:      'price_1TY8npPwwT0D6amwuwTPZRm4',
 };

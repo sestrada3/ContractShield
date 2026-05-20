@@ -149,7 +149,8 @@ export default function HomeScreen() {
       });
       if (cancelled.current) return;
       setResult(result);
-      // Immediately refresh usage so the counter counts down without waiting for next focus
+      // Optimistically decrement so the badge updates instantly (server confirms on next focus)
+      if (!isPro) setUsage(freeUsed + 1, freeLimit);
       getUsage().then(u => { setIsPro(u.isPro); setUsage(u.used, u.limit); }).catch(() => {});
       setText('');
       setImageData(null);
