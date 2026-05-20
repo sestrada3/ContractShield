@@ -54,7 +54,7 @@ function LoadingOverlay({ onCancel }: { onCancel: () => void }) {
 
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
-  const { setResult, setAnalyzing, setError, setIsPro, setUsage, isAnalyzing, isPro, freeUsed, freeLimit } = useStore();
+  const { setResult, setAnalyzing, setError, setIsPro, setUsage, isAnalyzing, isPro, freeUsed, freeLimit, credits } = useStore();
 
   const [text, setText]           = useState('');
   const [fileName, setFileName]   = useState('');
@@ -66,12 +66,12 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       getUsage()
-        .then(u => { setIsPro(u.isPro); setUsage(u.used, u.limit); })
+        .then(u => { setIsPro(u.isPro); setUsage(u.used, u.limit, u.credits); })
         .catch(() => {});
     }, [])
   );
 
-  const canAnalyze = isPro || freeUsed < freeLimit;
+  const canAnalyze = isPro || credits > 0 || freeUsed < freeLimit;
   const hasInput   = text.trim().length > 0 || !!imageData || !!pdfBase64;
 
   const pickDocument = async () => {
@@ -151,7 +151,7 @@ export default function HomeScreen() {
       setResult(result);
       // Optimistically decrement so the badge updates instantly (server confirms on next focus)
       if (!isPro) setUsage(freeUsed + 1, freeLimit);
-      getUsage().then(u => { setIsPro(u.isPro); setUsage(u.used, u.limit); }).catch(() => {});
+      getUsage().then(u => { setIsPro(u.isPro); setUsage(u.used, u.limit, u.credits); }).catch(() => {});
       setText('');
       setImageData(null);
       setPdfBase64(null);
@@ -206,7 +206,9 @@ export default function HomeScreen() {
         {!isPro && (
           <View style={s.usageBadge}>
             <Text style={s.usageText}>
-              {Math.max(0, freeLimit - freeUsed)} free {freeLimit - freeUsed === 1 ? 'analysis' : 'analyses'} remaining
+              {credits > 0
+                ? `${credits} paid credit${credits !== 1 ? 's' : ''} remaining`
+                : `${Math.max(0, freeLimit - freeUsed)} free ${freeLimit - freeUsed === 1 ? 'analysis' : 'analyses'} remaining`}
             </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Paywall')}>
               <Text style={s.upgradeLink}>Upgrade →</Text>

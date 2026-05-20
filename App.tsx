@@ -30,7 +30,7 @@ export default function App() {
     try {
       const u = await getUsage();
       setIsPro(u.isPro);
-      setUsage(u.used, u.limit);
+      setUsage(u.used, u.limit, u.credits);
     } catch {}
   };
   const [ready, setReady]               = useState(false);

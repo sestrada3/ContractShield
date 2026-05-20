@@ -39,7 +39,7 @@ export async function analyzeDocument(payload: {
 export const analyzeContract = analyzeDocument;
 
 // ── Usage ────────────────────────────────────────────────────────────────────
-export async function getUsage(): Promise<{ isPro: boolean; used: number; limit: number }> {
+export async function getUsage(): Promise<{ isPro: boolean; used: number; limit: number; credits: number }> {
   const res = await fetch(`${BASE_URL}/api/usage`, { headers: await authHeaders() });
   if (!res.ok) throw new Error('Failed to fetch usage');
   return res.json();

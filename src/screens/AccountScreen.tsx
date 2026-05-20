@@ -43,7 +43,7 @@ const scoreStyle = (score?: number) => {
 
 export default function AccountScreen() {
   const navigation = useNavigation<any>();
-  const { user, isPro, freeUsed, freeLimit, setUser, setIsPro, setUsage, setResult } = useStore();
+  const { user, isPro, freeUsed, freeLimit, credits, setUser, setIsPro, setUsage, setResult } = useStore();
 
   const [history, setHistory]           = useState<{ id: string; result: any; created_at: string }[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
@@ -59,7 +59,7 @@ export default function AccountScreen() {
   useFocusEffect(
     useCallback(() => {
       getUsage()
-        .then(u => { setIsPro(u.isPro); setUsage(u.used, u.limit); })
+        .then(u => { setIsPro(u.isPro); setUsage(u.used, u.limit, u.credits); })
         .catch(() => {});
       setLoadingHistory(true);
       getHistory()
@@ -87,7 +87,7 @@ export default function AccountScreen() {
       });
       const u = await getUsage();
       setIsPro(u.isPro);
-      setUsage(u.used, u.limit);
+      setUsage(u.used, u.limit, u.credits);
     } catch (e: any) {
       const msg = e?.response?.data?.error || e.message;
       if (msg?.includes('No active subscription')) {
@@ -169,7 +169,9 @@ export default function AccountScreen() {
           {!isPro && (
             <View style={s.row}>
               <Text style={s.rowLabel}>Analyses remaining</Text>
-              <Text style={s.rowValue}>{Math.max(0, freeLimit - freeUsed)} of {freeLimit}</Text>
+              <Text style={s.rowValue}>
+                {credits > 0 ? `${credits} credit${credits !== 1 ? 's' : ''}` : `${Math.max(0, freeLimit - freeUsed)} of ${freeLimit}`}
+              </Text>
             </View>
           )}
 

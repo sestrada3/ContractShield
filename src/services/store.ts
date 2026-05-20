@@ -35,6 +35,7 @@ interface AppState {
   isPro: boolean;
   freeUsed: number;
   freeLimit: number;
+  credits: number;
 
   // Analysis
   currentResult: AnalysisResult | null;
@@ -45,7 +46,7 @@ interface AppState {
   // Actions
   setUser: (user: User | null) => void;
   setIsPro: (isPro: boolean) => void;
-  setUsage: (used: number, limit: number) => void;
+  setUsage: (used: number, limit: number, credits?: number) => void;
   setResult: (result: AnalysisResult) => void;
   setAnalyzing: (val: boolean) => void;
   setError: (error: string | null) => void;
@@ -57,6 +58,7 @@ export const useStore = create<AppState>((set) => ({
   isPro: false,
   freeUsed: 0,
   freeLimit: 3,
+  credits: 0,
   currentResult: null,
   history: [],
   isAnalyzing: false,
@@ -64,7 +66,7 @@ export const useStore = create<AppState>((set) => ({
 
   setUser: (user) => set({ user }),
   setIsPro: (isPro) => set({ isPro }),
-  setUsage: (freeUsed, freeLimit) => set({ freeUsed, freeLimit }),
+  setUsage: (freeUsed, freeLimit, credits) => set((s) => ({ freeUsed, freeLimit, credits: credits ?? s.credits })),
   setResult: (result) => set((state) => ({
     currentResult: result,
     history: [result, ...state.history.slice(0, 19)],
