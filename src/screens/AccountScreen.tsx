@@ -11,12 +11,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useStore } from '../services/store';
 import { getPortalUrl, getHistory, deleteAccount, getUsage, setAuthToken } from '../services/api';
 import { signOut } from '../services/auth';
-
-const C = {
-  bg: '#0d0f15', surf: '#171b26', hi: '#1e2333',
-  gold: '#c9a84c', red: '#e05252', green: '#4caf7d',
-  t: 'rgba(255,255,255,0.92)', tm: 'rgba(255,255,255,0.55)', td: 'rgba(255,255,255,0.28)',
-};
+import { C } from '../theme';
 
 function SkeletonRow() {
   const anim = React.useRef(new Animated.Value(0.4)).current;
@@ -257,6 +252,34 @@ export default function AccountScreen() {
                 <Ionicons name="trash-outline" size={18} color={C.red}/>
               </>
             )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Legal & Support */}
+        <Text style={s.sectionLabel}>SUPPORT & LEGAL</Text>
+        <View style={s.card}>
+          <TouchableOpacity
+            style={s.row}
+            onPress={() => WebBrowser.openBrowserAsync('https://contractshield-backend.vercel.app/support')}
+          >
+            <Text style={s.rowLabel}>Help & Support</Text>
+            <Ionicons name="chevron-forward" size={14} color={C.td}/>
+          </TouchableOpacity>
+          <View style={s.divider}/>
+          <TouchableOpacity
+            style={s.row}
+            onPress={() => WebBrowser.openBrowserAsync('https://contractshield-backend.vercel.app/privacy')}
+          >
+            <Text style={s.rowLabel}>Privacy Policy</Text>
+            <Ionicons name="chevron-forward" size={14} color={C.td}/>
+          </TouchableOpacity>
+          <View style={s.divider}/>
+          <TouchableOpacity
+            style={s.row}
+            onPress={() => WebBrowser.openBrowserAsync('https://contractshield-backend.vercel.app/terms')}
+          >
+            <Text style={s.rowLabel}>Terms of Service</Text>
+            <Ionicons name="chevron-forward" size={14} color={C.td}/>
           </TouchableOpacity>
         </View>
 

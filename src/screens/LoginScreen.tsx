@@ -7,12 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { signInWithEmail, signUpWithEmail, resetPassword } from '../services/auth';
 import { setAuthToken } from '../services/api';
 import { useStore } from '../services/store';
-
-const C = {
-  bg: '#0b0d12', surf: '#13161e',
-  gold: '#c9a84c', t: 'rgba(255,255,255,0.88)',
-  tm: 'rgba(255,255,255,0.5)', td: 'rgba(255,255,255,0.28)',
-};
+import { C } from '../theme';
 
 type Mode = 'signin' | 'signup' | 'reset';
 

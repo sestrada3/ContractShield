@@ -7,14 +7,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import * as Haptics from 'expo-haptics';
+import { C } from '../theme';
 
 const { width: W } = Dimensions.get('window');
-
-const C = {
-  bg: '#0d0f15', surf: '#171b26', hi: '#1e2333',
-  gold: '#c9a84c', green: '#4caf7d', blue: '#4a9eff',
-  t: 'rgba(255,255,255,0.92)', tm: 'rgba(255,255,255,0.55)', td: 'rgba(255,255,255,0.28)',
-};
 
 const SLIDES = [
   {
@@ -53,7 +48,7 @@ const SLIDES = [
     detail: [
       { icon: 'shield-outline' as const,    text: 'Encrypted in transit' },
       { icon: 'eye-off-outline' as const,   text: 'PII automatically stripped' },
-      { icon: 'people-outline' as const,    text: 'Trusted by 12,000+ users · ⭐ 4.9' },
+      { icon: 'flash-outline' as const,     text: 'Results in under 30 seconds' },
     ],
   },
 ];

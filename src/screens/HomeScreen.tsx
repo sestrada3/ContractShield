@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  TextInput, ActivityIndicator, Alert, Platform, Image, Animated
+  TextInput, ActivityIndicator, Alert, Image, Animated
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,12 +13,7 @@ import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
 import { analyzeDocument } from '../services/api';
 import { useStore } from '../services/store';
-
-const C = {
-  bg: '#0d0f15', surf: '#171b26', hi: '#1e2333',
-  gold: '#c9a84c', red: '#e05252', green: '#4caf7d', blue: '#4a9eff',
-  t: 'rgba(255,255,255,0.92)', tm: 'rgba(255,255,255,0.55)', td: 'rgba(255,255,255,0.28)',
-};
+import { C } from '../theme';
 
 const LOADING_STEPS = [
   'Reading your document…',
@@ -189,7 +184,7 @@ export default function HomeScreen() {
             { icon: 'eye-off-outline' as const, label: 'Never stored' },
           ].map(({ icon, label }) => (
             <View key={label} style={s.secItem}>
-              <Ionicons name={icon} size={12} color="#4a9eff"/>
+              <Ionicons name={icon} size={15} color="#4a9eff"/>
               <Text style={s.secText}>{label}</Text>
             </View>
           ))}
@@ -292,9 +287,9 @@ const s = StyleSheet.create({
   appName:         { fontSize: 16, fontWeight: '700', color: C.t },
   appSub:          { fontSize: 9, color: C.td, letterSpacing: 1.5 },
   accountBtn:      { padding: 4 },
-  secBar:          { flexDirection: 'row', justifyContent: 'center', gap: 16, backgroundColor: 'rgba(74,158,255,0.05)', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(74,158,255,0.12)' },
-  secItem:         { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  secText:         { fontSize: 11, color: '#4a9eff', opacity: 0.85 },
+  secBar:          { flexDirection: 'row', justifyContent: 'center', gap: 20, backgroundColor: 'rgba(74,158,255,0.07)', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(74,158,255,0.18)' },
+  secItem:         { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  secText:         { fontSize: 12, color: '#4a9eff', fontWeight: '600' },
   usageBadge:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', margin: 16, marginBottom: 0, padding: 10, backgroundColor: 'rgba(201,168,76,0.08)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(201,168,76,0.2)' },
   usageText:       { fontSize: 12, color: C.gold },
   upgradeLink:     { fontSize: 12, color: C.gold, fontWeight: '700' },
@@ -315,7 +310,7 @@ const s = StyleSheet.create({
   dividerRow:      { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
   dividerLine:     { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.07)' },
   dividerText:     { fontSize: 11, color: C.td },
-  textInput:       { backgroundColor: C.surf, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 14, color: C.t, fontSize: 13, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', lineHeight: 20, minHeight: 140, marginBottom: 16 },
+  textInput:       { backgroundColor: C.surf, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 14, color: C.t, fontSize: 13, lineHeight: 20, minHeight: 140, marginBottom: 16 },
   analyzeBtn:      { backgroundColor: C.gold, borderRadius: 12, padding: 18, alignItems: 'center', marginBottom: 12 },
   analyzeBtnDisabled: { opacity: 0.4 },
   analyzeBtnText:  { fontSize: 15, fontWeight: '700', color: '#0b0d12', letterSpacing: 0.3 },
