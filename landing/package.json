@@ -1,7 +1,4 @@
 {
   "name": "contractshield-landing",
-  "version": "1.0.0",
-  "scripts": {
-    "build": "cp -r public dist"
-  }
+  "version": "1.0.0"
 }
