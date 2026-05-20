@@ -1,4 +1,5 @@
 {
-  "outputDirectory": "public",
+  "buildCommand": "rm -rf dist && cp -r public dist",
+  "outputDirectory": "dist",
   "framework": null
 }
