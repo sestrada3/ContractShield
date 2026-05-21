@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { Linking } from 'react-native';
+import { Linking, Alert } from 'react-native';
 import { render, fireEvent, act } from '@testing-library/react-native';
 import PaywallScreen from '../../screens/PaywallScreen';
 import { useStore } from '../../services/store';
@@ -24,14 +24,12 @@ jest.mock('../../services/api', () => ({
   createOneTimeCheckout:  (...a: any[]) => mockCreateOneTimeCheckout(...a),
 }));
 
-// Capture native alert() calls
-const mockAlert = jest.fn();
-global.alert = mockAlert;
-
+let mockAlert: jest.SpyInstance;
 let mockOpenURL: jest.SpyInstance;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockAlert  = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
   mockOpenURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
   useStore.setState({
     user: { id: 'u1', email: 'test@test.com' } as any,
@@ -152,6 +150,7 @@ describe('PaywallScreen — checkout (Subscribe tab)', () => {
     const { getByText } = render(<PaywallScreen />);
     await act(async () => { fireEvent.press(getByText('Start Pro — $5.99/mo')); });
     expect(mockAlert).toHaveBeenCalledWith(
+      'Checkout Error',
       expect.stringContaining('Could not open checkout'),
     );
   });

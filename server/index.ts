@@ -230,7 +230,7 @@ app.get('/api/history', requireAuth, async (req: any, res) => {
 // ── Stripe: subscription checkout ────────────────────────────────────────────
 app.post('/api/stripe/checkout', requireAuth, async (req: any, res) => {
   const { priceId } = req.body;
-  if (!priceId || typeof priceId !== 'string' || !priceId.startsWith('price_'))
+  if (!priceId || typeof priceId !== 'string' || !VALID_SUB_PRICES.has(priceId))
     return res.status(400).json({ error: 'Invalid plan' });
   try {
     const session = await stripe.checkout.sessions.create({
@@ -251,7 +251,7 @@ app.post('/api/stripe/checkout', requireAuth, async (req: any, res) => {
 // ── Stripe: one-time checkout ────────────────────────────────────────────────
 app.post('/api/stripe/checkout-onetime', requireAuth, async (req: any, res) => {
   const { priceId } = req.body;
-  if (!priceId || typeof priceId !== 'string' || !priceId.startsWith('price_'))
+  if (!priceId || typeof priceId !== 'string' || !VALID_ONETIME_PRICES.has(priceId))
     return res.status(400).json({ error: 'Invalid plan' });
   try {
     const session = await stripe.checkout.sessions.create({

@@ -17,6 +17,7 @@
       "infoPlist": {
         "NSCameraUsageDescription": "Take photos of contracts to analyze them",
         "NSPhotoLibraryUsageDescription": "Upload contract images from your photo library",
+        "NSDocumentPickerUsageDescription": "Select contract files (PDF or text) to analyze",
         "ITSAppUsesNonExemptEncryption": false
       }
     },

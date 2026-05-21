@@ -16,7 +16,8 @@
     "preset": "jest-expo",
     "testPathIgnorePatterns": [
       "/node_modules/",
-      "/server/"
+      "/server/",
+      "/.claude/"
     ],
     "setupFilesAfterEnv": [
       "<rootDir>/jest.setup.ts"
@@ -59,7 +60,6 @@
     "react-native-svg": "15.12.1",
     "react-native-url-polyfill": "^2.0.0",
     "react-native-web": "^0.21.0",
-    "react-native-worklets": "^0.5.1",
     "zustand": "^4.5.2"
   },
   "devDependencies": {
