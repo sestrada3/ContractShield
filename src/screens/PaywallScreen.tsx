@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, Linking, Alert,
+  ScrollView, Linking, Alert, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
-import { createCheckoutSession, createOneTimeCheckout } from '../services/api';
+import { createCheckoutSession, createOneTimeCheckout, getUsage } from '../services/api';
+import { APPLE_IDS, iapBuySubscription, iapBuyCredit, iapRestore } from '../services/iap';
+import { useStore } from '../services/store';
 import { C } from '../theme';
 
 // IMPORTANT: perAnalysis and creditPack must be Stripe PRICE IDs (price_xxx),
@@ -60,19 +62,31 @@ type Tab = 'plans' | 'payg';
 
 export default function PaywallScreen() {
   const navigation   = useNavigation<any>();
+  const { setIsPro, setUsage } = useStore();
   const [tab, setTab]         = useState<Tab>('plans');
   const [plan, setPlan]       = useState<'monthly' | 'yearly'>('yearly');
   const [loading, setLoading] = useState<string | null>(null);
+
+  const refreshUsage = () =>
+    getUsage().then(u => { setIsPro(u.isPro); setUsage(u.used, u.limit, u.credits); }).catch(() => {});
 
   const handleSubscribe = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading('sub');
     try {
-      const priceId = plan === 'monthly' ? PRICES.monthly : PRICES.yearly;
-      const { url } = await createCheckoutSession(priceId);
-      await Linking.openURL(url);
+      if (Platform.OS === 'ios') {
+        const productId = plan === 'monthly' ? APPLE_IDS.monthly : APPLE_IDS.yearly;
+        await iapBuySubscription(productId);
+        await refreshUsage();
+        navigation.goBack();
+      } else {
+        const priceId = plan === 'monthly' ? PRICES.monthly : PRICES.yearly;
+        const { url } = await createCheckoutSession(priceId);
+        await Linking.openURL(url);
+      }
     } catch (e: any) {
-      Alert.alert('Checkout Error', e?.response?.data?.error || e.message || 'Could not open checkout.');
+      if (e?.code === 'E_USER_CANCELLED') { setLoading(null); return; }
+      Alert.alert('Purchase Error', e.message || 'Could not complete purchase. Please try again.');
     } finally {
       setLoading(null);
     }
@@ -82,11 +96,36 @@ export default function PaywallScreen() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(type);
     try {
-      const priceId = type === 'single' ? PRICES.perAnalysis : PRICES.creditPack;
-      const { url } = await createOneTimeCheckout(priceId);
-      await Linking.openURL(url);
+      if (Platform.OS === 'ios') {
+        const productId = type === 'single' ? APPLE_IDS.creditSingle : APPLE_IDS.creditPack10;
+        await iapBuyCredit(productId);
+        await refreshUsage();
+        navigation.goBack();
+      } else {
+        const priceId = type === 'single' ? PRICES.perAnalysis : PRICES.creditPack;
+        const { url } = await createOneTimeCheckout(priceId);
+        await Linking.openURL(url);
+      }
     } catch (e: any) {
-      Alert.alert('Checkout Error', e?.response?.data?.error || e.message || 'Could not open checkout.');
+      if (e?.code === 'E_USER_CANCELLED') { setLoading(null); return; }
+      Alert.alert('Purchase Error', e.message || 'Could not complete purchase. Please try again.');
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleRestore = async () => {
+    setLoading('restore');
+    try {
+      const restored = await iapRestore();
+      if (restored) {
+        await refreshUsage();
+        Alert.alert('Purchases Restored', 'Your purchases have been restored successfully.');
+      } else {
+        Alert.alert('Nothing to Restore', 'No previous purchases found for this Apple ID.');
+      }
+    } catch (e: any) {
+      Alert.alert('Restore Failed', e.message || 'Could not restore purchases. Please try again.');
     } finally {
       setLoading(null);
     }
@@ -284,6 +323,19 @@ export default function PaywallScreen() {
           ))}
         </View>
 
+        {/* Restore purchases — Apple requires this to be visible on iOS */}
+        {Platform.OS === 'ios' && (
+          <TouchableOpacity
+            style={s.restoreBtn}
+            onPress={handleRestore}
+            disabled={loading === 'restore'}
+          >
+            <Text style={s.restoreBtnText}>
+              {loading === 'restore' ? 'Restoring…' : 'Restore Purchases'}
+            </Text>
+          </TouchableOpacity>
+        )}
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -371,4 +423,8 @@ const s = StyleSheet.create({
   // Free tier
   freeBox:   { marginTop: 28, borderTopWidth: 1, borderTopColor: C.border, paddingTop: 20 },
   freeTitle: { fontSize: 12, fontWeight: '700', color: C.td, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 },
+
+  // Restore purchases
+  restoreBtn:     { marginTop: 24, alignItems: 'center', paddingVertical: 12 },
+  restoreBtnText: { fontSize: 13, color: C.td, textDecorationLine: 'underline' },
 });

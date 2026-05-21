@@ -37,6 +37,7 @@
     "plugins": [
       "expo-document-picker",
       "expo-image-picker",
+      "react-native-iap",
       [
         "expo-build-properties",
         {
@@ -44,7 +45,8 @@
             "newArchEnabled": true
           },
           "android": {
-            "newArchEnabled": true
+            "newArchEnabled": true,
+            "kotlinVersion": "2.2.0"
           }
         }
       ],

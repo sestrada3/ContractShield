@@ -200,6 +200,70 @@ app.post('/api/analyze', rateLimit({ windowMs: 60_000, max: 5 }), requireAuth, a
   }
 });
 
+// ── Apple IAP receipt verification ──────────────────────────────────────────
+const APPLE_CREDIT_PRODUCTS: Record<string, number> = {
+  'com.contractshield.app.credit.single': 1,
+  'com.contractshield.app.credit.pack10': 10,
+};
+const APPLE_SUB_PRODUCTS = new Set([
+  'com.contractshield.app.pro.monthly',
+  'com.contractshield.app.pro.yearly',
+]);
+
+async function verifyAppleReceipt(receiptData: string): Promise<boolean> {
+  const body = JSON.stringify({
+    'receipt-data': receiptData,
+    'password': process.env.APPLE_SHARED_SECRET!,
+    'exclude-old-transactions': true,
+  });
+  // Try production first; fall back to sandbox for dev/TestFlight builds
+  for (const url of [
+    'https://buy.itunes.apple.com/verifyReceipt',
+    'https://sandbox.itunes.apple.com/verifyReceipt',
+  ]) {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+    });
+    const data = await r.json() as { status: number };
+    if (data.status === 21007) continue; // sandbox receipt sent to production — retry sandbox
+    return data.status === 0;
+  }
+  return false;
+}
+
+app.post('/api/apple/verify', requireAuth, async (req: any, res) => {
+  const { receipt, productId } = req.body;
+  if (!receipt || typeof receipt !== 'string')
+    return res.status(400).json({ error: 'Missing receipt' });
+  if (!productId || typeof productId !== 'string')
+    return res.status(400).json({ error: 'Missing productId' });
+  if (!APPLE_CREDIT_PRODUCTS[productId] && !APPLE_SUB_PRODUCTS.has(productId))
+    return res.status(400).json({ error: 'Unknown productId' });
+
+  const valid = await verifyAppleReceipt(receipt);
+  if (!valid) return res.status(400).json({ error: 'Invalid or expired receipt' });
+
+  const userId = req.user.id;
+  try {
+    if (APPLE_SUB_PRODUCTS.has(productId)) {
+      await supabase.from('profiles').upsert({ id: userId, is_pro: true }, { onConflict: 'id' });
+    } else {
+      const creditsToAdd = APPLE_CREDIT_PRODUCTS[productId];
+      const { data: p } = await supabase.from('profiles').select('credits').eq('id', userId).single();
+      await supabase.from('profiles').upsert(
+        { id: userId, credits: (p?.credits || 0) + creditsToAdd },
+        { onConflict: 'id' }
+      );
+    }
+    res.json({ success: true });
+  } catch (e: any) {
+    console.error('Apple verify error:', e.message);
+    res.status(500).json({ error: 'Could not update account. Please contact support.' });
+  }
+});
+
 // ── Usage ────────────────────────────────────────────────────────────────────
 app.get('/api/usage', requireAuth, async (req: any, res) => {
   const { data } = await supabase
