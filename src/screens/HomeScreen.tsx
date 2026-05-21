@@ -82,7 +82,7 @@ export default function HomeScreen() {
       });
       if (result.canceled || !result.assets?.[0]) return;
       const file = result.assets[0];
-      setFileName(file.name);
+      setFileName(file.name || 'Document');
       if (file.mimeType === 'text/plain') {
         const content = await fetch(file.uri).then(r => r.text());
         setText(content.slice(0, 3000));
@@ -121,7 +121,7 @@ export default function HomeScreen() {
       [{ resize: { width: 1200 } }],
       { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG, base64: true }
     );
-    if (!manipulated.base64) { Alert.alert('Could not read image', 'Please try again.'); return; }
+    if (!manipulated.base64) { setImageData(null); Alert.alert('Could not read image', 'Please try again.'); return; }
     setImageData({ base64: manipulated.base64, type: 'image/jpeg' });
     setPdfBase64(null);
     setFileName(useCamera ? 'Camera photo' : 'Photo from library');

@@ -288,6 +288,90 @@ app.post('/api/stripe/portal', requireAuth, async (req: any, res) => {
   }
 });
 
+// ── Admin middleware ─────────────────────────────────────────────────────────
+const requireAdmin = (req: any, res: any, next: any) => {
+  const secret = req.headers['x-admin-secret'];
+  if (!secret || secret !== process.env.ADMIN_SECRET)
+    return res.status(403).json({ error: 'Forbidden' });
+  next();
+};
+
+// ── Admin: list users ────────────────────────────────────────────────────────
+app.get('/api/admin/users', requireAdmin, async (_req, res) => {
+  try {
+    const { data: authUsers } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+    const { data: profiles }  = await supabase.from('profiles').select('id, is_pro, free_analyses_used, credits, stripe_customer_id, created_at');
+    const { data: analyses }  = await supabase.from('analyses').select('user_id');
+
+    const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p]));
+    const analysisCounts = (analyses || []).reduce((acc: any, a) => {
+      acc[a.user_id] = (acc[a.user_id] || 0) + 1;
+      return acc;
+    }, {});
+
+    const users = (authUsers?.users || []).map(u => ({
+      id:              u.id,
+      email:           u.email,
+      created_at:      u.created_at,
+      last_sign_in_at: u.last_sign_in_at,
+      is_pro:          profileMap[u.id]?.is_pro || false,
+      credits:         profileMap[u.id]?.credits || 0,
+      free_analyses_used: profileMap[u.id]?.free_analyses_used || 0,
+      total_analyses:  analysisCounts[u.id] || 0,
+      stripe_customer_id: profileMap[u.id]?.stripe_customer_id || null,
+    }));
+
+    res.json({ users, total: users.length });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Admin: toggle pro ────────────────────────────────────────────────────────
+app.post('/api/admin/users/:id/toggle-pro', requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { data: profile } = await supabase.from('profiles').select('is_pro').eq('id', id).single();
+    const newVal = !profile?.is_pro;
+    await supabase.from('profiles').update({ is_pro: newVal }).eq('id', id);
+    res.json({ is_pro: newVal });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Admin: set credits ───────────────────────────────────────────────────────
+app.post('/api/admin/users/:id/credits', requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { credits } = req.body;
+  if (typeof credits !== 'number' || credits < 0)
+    return res.status(400).json({ error: 'Invalid credits value' });
+  try {
+    await supabase.from('profiles').update({ credits }).eq('id', id);
+    res.json({ credits });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Admin: delete user ───────────────────────────────────────────────────────
+app.delete('/api/admin/users/:id', requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { data: profile } = await supabase.from('profiles').select('stripe_customer_id').eq('id', id).single();
+    if (profile?.stripe_customer_id) {
+      const subs = await stripe.subscriptions.list({ customer: profile.stripe_customer_id as string, status: 'active' });
+      await Promise.all(subs.data.map(sub => stripe.subscriptions.cancel(sub.id)));
+    }
+    await supabase.from('analyses').delete().eq('user_id', id);
+    await supabase.from('profiles').delete().eq('id', id);
+    await supabase.auth.admin.deleteUser(id);
+    res.json({ success: true });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── Delete account ───────────────────────────────────────────────────────────
 app.delete('/api/account', requireAuth, async (req: any, res) => {
   const userId = req.user.id;

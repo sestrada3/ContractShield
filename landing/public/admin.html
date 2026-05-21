@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ContractShield Admin</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:    #0d0f15;
+      --surf:  #171b26;
+      --hi:    #1e2333;
+      --gold:  #c9a84c;
+      --green: #4caf7d;
+      --red:   #e05252;
+      --blue:  #4a9eff;
+      --t:     rgba(255,255,255,0.92);
+      --tm:    rgba(255,255,255,0.55);
+      --td:    rgba(255,255,255,0.28);
+      --bdr:   rgba(255,255,255,0.08);
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--t); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+
+    /* ── Login ── */
+    #login-screen {
+      display: flex; align-items: center; justify-content: center; min-height: 100vh;
+    }
+    .login-box {
+      background: var(--surf); border: 1px solid var(--bdr); border-radius: 16px;
+      padding: 40px; width: 100%; max-width: 380px; text-align: center;
+    }
+    .login-box h1 { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+    .login-box p  { font-size: 13px; color: var(--tm); margin-bottom: 28px; }
+    .login-box input {
+      width: 100%; padding: 12px 14px; background: var(--hi); border: 1px solid var(--bdr);
+      border-radius: 10px; color: var(--t); font-size: 14px; font-family: inherit;
+      margin-bottom: 12px; outline: none;
+    }
+    .login-box input:focus { border-color: var(--gold); }
+    .btn-gold {
+      width: 100%; padding: 13px; background: var(--gold); border: none; border-radius: 10px;
+      color: #0b0d12; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+    }
+    .btn-gold:hover { opacity: 0.9; }
+    #login-error { color: var(--red); font-size: 12px; margin-top: 10px; min-height: 18px; }
+
+    /* ── Main ── */
+    #main-screen { display: none; }
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 28px; border-bottom: 1px solid var(--bdr);
+      background: var(--surf); position: sticky; top: 0; z-index: 10;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 12px; }
+    .topbar-logo { font-size: 15px; font-weight: 800; color: var(--gold); }
+    .topbar-badge {
+      font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      background: rgba(201,168,76,0.15); color: var(--gold);
+      border: 1px solid rgba(201,168,76,0.3); border-radius: 6px; padding: 3px 8px;
+    }
+    .btn-sm {
+      padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+      cursor: pointer; font-family: inherit; border: 1px solid var(--bdr);
+      background: var(--hi); color: var(--tm);
+    }
+    .btn-sm:hover { color: var(--t); }
+
+    .content { padding: 28px; max-width: 1200px; margin: 0 auto; }
+
+    /* ── Stats ── */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 28px; }
+    .stat-card {
+      background: var(--surf); border: 1px solid var(--bdr); border-radius: 12px; padding: 18px;
+    }
+    .stat-label { font-size: 11px; color: var(--td); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+    .stat-value { font-size: 28px; font-weight: 800; }
+    .stat-value.gold  { color: var(--gold); }
+    .stat-value.green { color: var(--green); }
+    .stat-value.blue  { color: var(--blue); }
+
+    /* ── Search & filter ── */
+    .toolbar {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .search-wrap { position: relative; flex: 1; min-width: 200px; }
+    .search-wrap input {
+      width: 100%; padding: 10px 14px 10px 36px; background: var(--surf);
+      border: 1px solid var(--bdr); border-radius: 10px; color: var(--t);
+      font-size: 13px; font-family: inherit; outline: none;
+    }
+    .search-wrap input:focus { border-color: var(--gold); }
+    .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--td); font-size: 14px; }
+    .filter-btns { display: flex; gap: 6px; }
+    .filter-btn {
+      padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+      cursor: pointer; font-family: inherit; border: 1px solid var(--bdr);
+      background: var(--surf); color: var(--tm); transition: all 0.15s;
+    }
+    .filter-btn.active { background: rgba(201,168,76,0.12); border-color: rgba(201,168,76,0.4); color: var(--gold); }
+
+    /* ── Table ── */
+    .table-wrap { background: var(--surf); border: 1px solid var(--bdr); border-radius: 14px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      padding: 12px 16px; text-align: left; font-size: 10px; font-weight: 700;
+      letter-spacing: 1px; text-transform: uppercase; color: var(--td);
+      border-bottom: 1px solid var(--bdr); white-space: nowrap;
+    }
+    tbody tr { border-bottom: 1px solid var(--bdr); transition: background 0.1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--hi); }
+    td { padding: 12px 16px; font-size: 13px; vertical-align: middle; }
+    .email { font-weight: 600; color: var(--t); }
+    .date  { color: var(--td); font-size: 11px; }
+
+    .badge {
+      display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 6px;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+    }
+    .badge-pro  { background: rgba(201,168,76,0.15); color: var(--gold); border: 1px solid rgba(201,168,76,0.3); }
+    .badge-free { background: rgba(255,255,255,0.05); color: var(--td); border: 1px solid var(--bdr); }
+
+    .actions { display: flex; gap: 6px; align-items: center; }
+    .action-btn {
+      padding: 5px 10px; border-radius: 7px; font-size: 11px; font-weight: 600;
+      cursor: pointer; font-family: inherit; border: 1px solid var(--bdr);
+      background: var(--hi); color: var(--tm); white-space: nowrap;
+    }
+    .action-btn:hover { color: var(--t); }
+    .action-btn.pro    { border-color: rgba(201,168,76,0.35); color: var(--gold); background: rgba(201,168,76,0.08); }
+    .action-btn.pro:hover { background: rgba(201,168,76,0.15); }
+    .action-btn.danger { border-color: rgba(224,82,82,0.35); color: var(--red); background: rgba(224,82,82,0.08); }
+    .action-btn.danger:hover { background: rgba(224,82,82,0.15); }
+
+    .empty { text-align: center; padding: 48px; color: var(--td); font-size: 14px; }
+    #loading { text-align: center; padding: 48px; color: var(--td); }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      align-items: center; justify-content: center; z-index: 100;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surf); border: 1px solid var(--bdr); border-radius: 16px;
+      padding: 28px; width: 100%; max-width: 360px;
+    }
+    .modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .modal p  { font-size: 13px; color: var(--tm); margin-bottom: 20px; }
+    .modal input {
+      width: 100%; padding: 11px 13px; background: var(--hi); border: 1px solid var(--bdr);
+      border-radius: 9px; color: var(--t); font-size: 14px; font-family: inherit;
+      margin-bottom: 16px; outline: none;
+    }
+    .modal input:focus { border-color: var(--gold); }
+    .modal-btns { display: flex; gap: 10px; }
+    .btn-outline {
+      flex: 1; padding: 11px; border-radius: 9px; font-size: 13px; font-weight: 600;
+      cursor: pointer; font-family: inherit; border: 1px solid var(--bdr);
+      background: transparent; color: var(--tm);
+    }
+    .btn-outline:hover { color: var(--t); }
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; background: var(--surf);
+      border: 1px solid var(--bdr); border-radius: 10px; padding: 12px 18px;
+      font-size: 13px; font-weight: 600; z-index: 200; opacity: 0;
+      transform: translateY(8px); transition: all 0.2s; pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.green { border-color: rgba(76,175,125,0.4); color: var(--green); }
+    .toast.red   { border-color: rgba(224,82,82,0.4);  color: var(--red); }
+  </style>
+</head>
+<body>
+
+<!-- Login -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1>⚡ Admin</h1>
+    <p>ContractShield user management</p>
+    <input type="password" id="secret-input" placeholder="Admin password" autocomplete="current-password">
+    <button class="btn-gold" onclick="login()">Sign In</button>
+    <div id="login-error"></div>
+  </div>
+</div>
+
+<!-- Main -->
+<div id="main-screen">
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-logo">ContractShield</span>
+      <span class="topbar-badge">ADMIN</span>
+    </div>
+    <button class="btn-sm" onclick="logout()">Sign Out</button>
+  </div>
+
+  <div class="content">
+    <div class="stats" id="stats"></div>
+
+    <div class="toolbar">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search" placeholder="Search by email…" oninput="renderTable()">
+      </div>
+      <div class="filter-btns">
+        <button class="filter-btn active" data-filter="all"   onclick="setFilter('all',this)">All</button>
+        <button class="filter-btn"        data-filter="pro"   onclick="setFilter('pro',this)">Pro</button>
+        <button class="filter-btn"        data-filter="free"  onclick="setFilter('free',this)">Free</button>
+      </div>
+      <button class="btn-sm" onclick="loadUsers()">↻ Refresh</button>
+    </div>
+
+    <div class="table-wrap">
+      <div id="loading">Loading users…</div>
+      <table id="user-table" style="display:none">
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Plan</th>
+            <th>Credits</th>
+            <th>Free Used</th>
+            <th>Analyses</th>
+            <th>Joined</th>
+            <th>Last Sign In</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="user-tbody"></tbody>
+      </table>
+      <div id="empty" class="empty" style="display:none">No users found.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Credits Modal -->
+<div class="modal-overlay" id="credits-modal">
+  <div class="modal">
+    <h3>Set Credits</h3>
+    <p id="credits-modal-email"></p>
+    <input type="number" id="credits-input" min="0" placeholder="Number of credits">
+    <div class="modal-btns">
+      <button class="btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn-gold" style="flex:1" onclick="saveCredits()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const API = 'https://contractshield-backend.vercel.app';
+  let secret = '';
+  let allUsers = [];
+  let currentFilter = 'all';
+  let editingUserId = null;
+
+  // ── Auth ──
+  function login() {
+    const val = document.getElementById('secret-input').value.trim();
+    if (!val) return;
+    secret = val;
+    sessionStorage.setItem('admin_secret', val);
+    loadUsers();
+  }
+
+  function logout() {
+    sessionStorage.removeItem('admin_secret');
+    secret = '';
+    document.getElementById('main-screen').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('secret-input').value = '';
+  }
+
+  document.getElementById('secret-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') login();
+  });
+
+  // ── Load users ──
+  async function loadUsers() {
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('user-table').style.display = 'none';
+    document.getElementById('empty').style.display = 'none';
+    document.getElementById('login-error').textContent = '';
+
+    try {
+      const r = await fetch(`${API}/api/admin/users`, {
+        headers: { 'x-admin-secret': secret }
+      });
+      if (r.status === 403) {
+        document.getElementById('login-error').textContent = 'Wrong password.';
+        document.getElementById('login-screen').style.display = 'flex';
+        document.getElementById('main-screen').style.display = 'none';
+        return;
+      }
+      const data = await r.json();
+      allUsers = data.users || [];
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('main-screen').style.display = 'block';
+      renderStats();
+      renderTable();
+    } catch (e) {
+      showToast('Failed to load users', 'red');
+    } finally {
+      document.getElementById('loading').style.display = 'none';
+    }
+  }
+
+  // ── Stats ──
+  function renderStats() {
+    const total    = allUsers.length;
+    const pro      = allUsers.filter(u => u.is_pro).length;
+    const analyses = allUsers.reduce((s, u) => s + u.total_analyses, 0);
+    const credits  = allUsers.reduce((s, u) => s + u.credits, 0);
+    document.getElementById('stats').innerHTML = `
+      <div class="stat-card"><div class="stat-label">Total Users</div><div class="stat-value blue">${total}</div></div>
+      <div class="stat-card"><div class="stat-label">Pro Users</div><div class="stat-value gold">${pro}</div></div>
+      <div class="stat-card"><div class="stat-label">Total Analyses</div><div class="stat-value">${analyses}</div></div>
+      <div class="stat-card"><div class="stat-label">Credits Sold</div><div class="stat-value green">${credits}</div></div>
+    `;
+  }
+
+  // ── Table ──
+  function setFilter(f, btn) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderTable();
+  }
+
+  function renderTable() {
+    const q = document.getElementById('search').value.toLowerCase();
+    let users = allUsers.filter(u => {
+      const matchSearch = !q || (u.email || '').toLowerCase().includes(q);
+      const matchFilter = currentFilter === 'all' || (currentFilter === 'pro' ? u.is_pro : !u.is_pro);
+      return matchSearch && matchFilter;
+    });
+
+    const tbody = document.getElementById('user-tbody');
+    if (users.length === 0) {
+      document.getElementById('user-table').style.display = 'none';
+      document.getElementById('empty').style.display = 'block';
+      return;
+    }
+    document.getElementById('user-table').style.display = 'table';
+    document.getElementById('empty').style.display = 'none';
+
+    tbody.innerHTML = users.map(u => `
+      <tr id="row-${u.id}">
+        <td>
+          <div class="email">${u.email || '—'}</div>
+        </td>
+        <td>
+          <span class="badge ${u.is_pro ? 'badge-pro' : 'badge-free'}">${u.is_pro ? '✦ PRO' : 'FREE'}</span>
+        </td>
+        <td>${u.credits}</td>
+        <td>${u.free_analyses_used} / 3</td>
+        <td>${u.total_analyses}</td>
+        <td class="date">${fmtDate(u.created_at)}</td>
+        <td class="date">${u.last_sign_in_at ? fmtDate(u.last_sign_in_at) : '—'}</td>
+        <td>
+          <div class="actions">
+            <button class="action-btn pro" onclick="togglePro('${u.id}')">
+              ${u.is_pro ? 'Revoke Pro' : 'Grant Pro'}
+            </button>
+            <button class="action-btn" onclick="openCredits('${u.id}', '${u.email}', ${u.credits})">
+              Credits
+            </button>
+            <button class="action-btn danger" onclick="deleteUser('${u.id}', '${u.email}')">
+              Delete
+            </button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  // ── Actions ──
+  async function togglePro(id) {
+    try {
+      const r = await fetch(`${API}/api/admin/users/${id}/toggle-pro`, {
+        method: 'POST', headers: { 'x-admin-secret': secret }
+      });
+      const data = await r.json();
+      const user = allUsers.find(u => u.id === id);
+      if (user) user.is_pro = data.is_pro;
+      renderStats();
+      renderTable();
+      showToast(`Pro ${data.is_pro ? 'granted' : 'revoked'}`, 'green');
+    } catch { showToast('Failed', 'red'); }
+  }
+
+  function openCredits(id, email, current) {
+    editingUserId = id;
+    document.getElementById('credits-modal-email').textContent = email;
+    document.getElementById('credits-input').value = current;
+    document.getElementById('credits-modal').classList.add('open');
+    setTimeout(() => document.getElementById('credits-input').focus(), 50);
+  }
+
+  function closeModal() {
+    document.getElementById('credits-modal').classList.remove('open');
+    editingUserId = null;
+  }
+
+  async function saveCredits() {
+    const credits = parseInt(document.getElementById('credits-input').value, 10);
+    if (isNaN(credits) || credits < 0) return;
+    try {
+      await fetch(`${API}/api/admin/users/${editingUserId}/credits`, {
+        method: 'POST',
+        headers: { 'x-admin-secret': secret, 'content-type': 'application/json' },
+        body: JSON.stringify({ credits })
+      });
+      const user = allUsers.find(u => u.id === editingUserId);
+      if (user) user.credits = credits;
+      closeModal();
+      renderStats();
+      renderTable();
+      showToast('Credits updated', 'green');
+    } catch { showToast('Failed', 'red'); }
+  }
+
+  async function deleteUser(id, email) {
+    if (!confirm(`Delete ${email}?\n\nThis cancels their Stripe subscription and permanently removes all their data.`)) return;
+    try {
+      const r = await fetch(`${API}/api/admin/users/${id}`, {
+        method: 'DELETE', headers: { 'x-admin-secret': secret }
+      });
+      if (!r.ok) throw new Error();
+      allUsers = allUsers.filter(u => u.id !== id);
+      renderStats();
+      renderTable();
+      showToast('User deleted', 'green');
+    } catch { showToast('Failed to delete user', 'red'); }
+  }
+
+  // ── Toast ──
+  function showToast(msg, type = 'green') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `toast ${type} show`;
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  // ── Close modal on overlay click ──
+  document.getElementById('credits-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  // ── Credits input: save on Enter ──
+  document.getElementById('credits-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') saveCredits();
+  });
+
+  // ── Auto-login if secret saved ──
+  const saved = sessionStorage.getItem('admin_secret');
+  if (saved) { secret = saved; loadUsers(); }
+</script>
+</body>
+</html>

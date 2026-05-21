@@ -72,7 +72,7 @@ export default function PaywallScreen() {
       const { url } = await createCheckoutSession(priceId);
       await Linking.openURL(url);
     } catch (e: any) {
-      Alert.alert('Checkout Error', 'Could not open checkout. Please try again.');
+      Alert.alert('Checkout Error', e?.response?.data?.error || e.message || 'Could not open checkout.');
     } finally {
       setLoading(null);
     }
@@ -86,7 +86,7 @@ export default function PaywallScreen() {
       const { url } = await createOneTimeCheckout(priceId);
       await Linking.openURL(url);
     } catch (e: any) {
-      Alert.alert('Checkout Error', 'Could not open checkout. Please try again.');
+      Alert.alert('Checkout Error', e?.response?.data?.error || e.message || 'Could not open checkout.');
     } finally {
       setLoading(null);
     }
