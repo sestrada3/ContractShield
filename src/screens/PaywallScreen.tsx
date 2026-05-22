@@ -75,7 +75,7 @@ export default function PaywallScreen() {
   const loadProducts = async () => {
     setLoadingProducts(true);
     try {
-      const [o, { products }] = await Promise.all([
+      const [o, products] = await Promise.all([
         Purchases.getOfferings(),
         Purchases.getProducts([PRODUCT_CREDIT_1, PRODUCT_CREDIT_10]),
       ]);
