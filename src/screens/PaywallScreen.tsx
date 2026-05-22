@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, Alert, ActivityIndicator,
+  ScrollView, Alert, ActivityIndicator, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -156,12 +156,13 @@ export default function PaywallScreen() {
 
         {/* Hero */}
         <View style={s.hero}>
-          <LinearGradient
-            colors={['rgba(201,168,76,0.18)', 'rgba(201,168,76,0.04)']}
-            style={s.heroIconWrap}
-          >
-            <Ionicons name="shield-checkmark" size={52} color={C.gold}/>
-          </LinearGradient>
+          <View style={s.heroIconWrap}>
+            <Image
+              source={require('../../assets/logo.png')}
+              style={s.heroLogo}
+              resizeMode="contain"
+            />
+          </View>
           <Text style={s.heroTitle}>ContractShield Pro</Text>
           <Text style={s.heroSub}>Know exactly what you're signing — and how to negotiate it.</Text>
         </View>
@@ -358,7 +359,8 @@ const s = StyleSheet.create({
   closeCircle: { width: 30, height: 30, borderRadius: 15, backgroundColor: C.surf, alignItems: 'center', justifyContent: 'center' },
 
   hero:        { alignItems: 'center', marginBottom: 28 },
-  heroIconWrap:{ width: 88, height: 88, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: 16, borderWidth: 1, borderColor: 'rgba(201,168,76,0.2)' },
+  heroIconWrap:{ width: 88, height: 88, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: 16, overflow: 'hidden' },
+  heroLogo:    { width: 88, height: 88 },
   heroTitle:   { fontSize: 26, fontWeight: '800', color: C.t, letterSpacing: -0.5 },
   heroSub:     { fontSize: 14, color: C.tm, marginTop: 6, textAlign: 'center', lineHeight: 21, maxWidth: 280 },
 
