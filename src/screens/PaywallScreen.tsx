@@ -69,21 +69,21 @@ export default function PaywallScreen() {
   const [loadingProducts, setLoadingProducts] = useState(true);
 
   useEffect(() => {
+    Alert.alert('DEBUG v2', 'Paywall mounted');
     loadProducts();
   }, []);
 
   const loadProducts = async () => {
     setLoadingProducts(true);
     try {
-      const [o, products] = await Promise.all([
-        Purchases.getOfferings(),
-        Purchases.getProducts([PRODUCT_CREDIT_1, PRODUCT_CREDIT_10]),
-      ]);
-      Alert.alert('DEBUG: products', `Fetched: ${products.length}\n${products.map(p => p.productIdentifier).join('\n') || '(none)'}`);
+      Alert.alert('DEBUG v2', 'calling getProducts...');
+      const products = await Purchases.getProducts([PRODUCT_CREDIT_1, PRODUCT_CREDIT_10]);
+      Alert.alert('DEBUG v2', `getProducts done: ${products.length}\n${products.map(p => p.productIdentifier).join('\n') || '(none)'}`);
+      const o = await Purchases.getOfferings();
       setOfferings(o);
       setConsumables(products);
     } catch (e: any) {
-      Alert.alert('DEBUG: loadProducts error', e?.message || String(e));
+      Alert.alert('DEBUG v2 error', e?.message || String(e));
     } finally {
       setLoadingProducts(false);
     }
