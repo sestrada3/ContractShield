@@ -75,12 +75,12 @@ export default function PaywallScreen() {
   const loadProducts = async () => {
     setLoadingProducts(true);
     try {
-      const products = await Purchases.getProducts([PRODUCT_CREDIT_1, PRODUCT_CREDIT_10]);
-      const o = await Purchases.getOfferings();
-      setOfferings(o);
-      setConsumables(products);
-    } catch {
-      // Products unavailable — user can still see the UI, purchase will fail gracefully
+      const [o, products] = await Promise.allSettled([
+        Purchases.getOfferings(),
+        Purchases.getProducts([PRODUCT_CREDIT_1, PRODUCT_CREDIT_10]),
+      ]);
+      if (o.status === 'fulfilled') setOfferings(o.value);
+      if (products.status === 'fulfilled') setConsumables(products.value);
     } finally {
       setLoadingProducts(false);
     }
