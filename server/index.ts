@@ -88,15 +88,22 @@ app.use(express.json({ limit: '10mb' }));
 app.get('/health', (_req, res) => res.json({ ok: true, build: 'v8-diag' }));
 
 app.get('/api/diag', async (_req, res) => {
+  const results: any = {};
   try {
+    const system = 'You are a legal document analyst. Output only raw JSON. Start with { and end with }.';
+    const prompt = buildPrompt('This is a test employment agreement. The employee agrees to work 40 hours per week.', false);
     const msg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001', max_tokens: 5,
-      messages: [{ role: 'user', content: 'hi' }],
+      model: 'claude-haiku-4-5-20251001', max_tokens: 2000, system,
+      messages: [{ role: 'user', content: prompt }],
     });
-    res.json({ ok: true, text: (msg.content[0] as any).text });
+    const raw = (msg.content[0] as any).text;
+    const parsed = parseJSON(raw);
+    results.anthropic = { ok: true };
+    results.parse = { ok: !!parsed, rawLength: raw?.length, rawPreview: raw?.slice(0, 200) };
   } catch (e: any) {
-    res.json({ ok: false, status: e?.status, message: e?.message });
+    results.anthropic = { ok: false, status: e?.status, message: e?.message };
   }
+  res.json(results);
 });
 
 // ── Clients ──────────────────────────────────────────────────────────────────
