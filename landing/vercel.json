@@ -1,8 +1,8 @@
 {
-  "buildCommand": "rm -rf dist && cp -r public dist",
-  "outputDirectory": "dist",
+  "outputDirectory": "public",
   "framework": null,
   "routes": [
-    { "src": "/admin", "dest": "/admin.html" }
+    { "src": "/admin", "dest": "/admin.html" },
+    { "src": "/support", "dest": "/support.html" }
   ]
 }
