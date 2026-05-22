@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, Alert, ActivityIndicator,
@@ -66,6 +66,7 @@ export default function PaywallScreen() {
 
   const [offerings, setOfferings]     = useState<PurchasesOfferings | null>(null);
   const [consumables, setConsumables] = useState<PurchasesStoreProduct[]>([]);
+  const consumablesRef = useRef<PurchasesStoreProduct[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
 
   useEffect(() => {
@@ -81,7 +82,10 @@ export default function PaywallScreen() {
       ]);
       Alert.alert('DIAG', `offerings:${o.status} products:${products.status} count:${products.status === 'fulfilled' ? products.value.length : 'ERR'}`);
       if (o.status === 'fulfilled') setOfferings(o.value);
-      if (products.status === 'fulfilled') setConsumables(products.value);
+      if (products.status === 'fulfilled') {
+        consumablesRef.current = products.value;
+        setConsumables(products.value);
+      }
     } finally {
       setLoadingProducts(false);
     }
@@ -116,8 +120,8 @@ export default function PaywallScreen() {
   };
 
   const handleOneTime = async (productId: string) => {
-    Alert.alert('DIAG', `handleOneTime called. consumables.length=${consumables.length} productId=${productId}`);
-    const product = consumables.find(p => p.productIdentifier === productId);
+    Alert.alert('DIAG', `looking for:\n"${productId}"\n\nfound in ref:\n${consumablesRef.current.map(p => `"${p.productIdentifier}"`).join('\n') || '(empty)'}`);
+    const product = consumablesRef.current.find(p => p.productIdentifier === productId);
     if (!product) {
       Alert.alert('Not available', 'Products could not be loaded. Please check your connection and try again.');
       return;
