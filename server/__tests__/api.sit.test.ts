@@ -60,6 +60,7 @@ jest.mock('@anthropic-ai/sdk', () => ({
     messages: {
       create: jest.fn().mockResolvedValue({
         content: [{
+          type: 'text',
           text: JSON.stringify({
             score: 7,
             type: 'NDA',
