@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ContractShield Admin</title>
-  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="icon" type="image/png" href="/favicon.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -428,7 +428,7 @@
   }
 
   async function deleteUser(id, email) {
-    if (!confirm(`Delete ${email}?\n\nThis cancels their Stripe subscription and permanently removes all their data.`)) return;
+    if (!confirm(`Delete ${email}?\n\nThis permanently removes all their data. Their App Store subscription will lapse naturally.`)) return;
     try {
       const r = await fetch(`${API}/api/admin/users/${id}`, {
         method: 'DELETE', headers: { 'x-admin-secret': secret }
