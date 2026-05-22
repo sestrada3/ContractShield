@@ -441,8 +441,9 @@ export const buildPrompt = (text?: string, isPro = false) => {
     .trim()
     .slice(0, charLimit);
 
+  const clauseCount = isPro ? '5-10' : '3';
   return 'Analyze this legal document. Return ONLY JSON with: score(1-10), type, verdict, summary, '
-    + 'clauses(3-5 items covering a mix of risk levels — include at least one medium or low risk clause when present, not all high: title/risk[high|medium|low]/plain/excerpt/standard/benchmark/script/action), '
+    + `clauses(${clauseCount} most important items ranked by severity: title/risk[high|medium|low]/plain/excerpt/standard/benchmark/script/action), `
     + 'dates(label/date/urgency[high|medium|low]/action), positives(string[]). Document: ' + clean;
 };
 
