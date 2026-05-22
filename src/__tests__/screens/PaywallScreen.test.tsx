@@ -49,12 +49,10 @@ const mockOfferings = {
   },
 };
 
-const mockConsumables = {
-  products: [
-    { productIdentifier: 'com.contractshield.credits.1',  priceString: '$2.99' },
-    { productIdentifier: 'com.contractshield.credits.10', priceString: '$14.99' },
-  ],
-};
+const mockConsumables = [
+  { productIdentifier: 'com.contractshield.credits.1',  priceString: '$2.99' },
+  { productIdentifier: 'com.contractshield.credits.10', priceString: '$14.99' },
+];
 
 let mockAlert: jest.SpyInstance;
 
@@ -70,6 +68,7 @@ beforeEach(() => {
     isPro: false,
     freeUsed: 3,
     freeLimit: 3,
+    credits: 0,
   } as any);
 });
 
@@ -248,6 +247,59 @@ describe('PaywallScreen — Pay As You Go tab', () => {
     const { getByText } = render(<PaywallScreen />);
     fireEvent.press(getByText('Pay As You Go'));
     expect(getByText(/Pro saves you money/)).toBeTruthy();
+  });
+
+  it('adds 1 credit optimistically after buying Single Analysis', async () => {
+    mockPurchaseStoreProduct.mockResolvedValueOnce({ customerInfo: { entitlements: { active: {} } } });
+    mockGetUsage.mockResolvedValueOnce({ isPro: false, used: 3, limit: 3, credits: 0 });
+    const { getByText, getAllByText } = render(<PaywallScreen />);
+    fireEvent.press(getByText('Pay As You Go'));
+    await waitFor(() => expect(getAllByText('Buy').length).toBeGreaterThan(0));
+    await act(async () => { fireEvent.press(getAllByText('Buy')[0]); });
+    expect(mockGetUsage).toHaveBeenCalled();
+    expect(useStore.getState().credits).toBe(1);
+  });
+
+  it('adds 10 credits optimistically after buying the 10-Pack', async () => {
+    mockPurchaseStoreProduct.mockResolvedValueOnce({ customerInfo: { entitlements: { active: {} } } });
+    mockGetUsage.mockResolvedValueOnce({ isPro: false, used: 3, limit: 3, credits: 0 });
+    const { getByText, getAllByText } = render(<PaywallScreen />);
+    fireEvent.press(getByText('Pay As You Go'));
+    await waitFor(() => expect(getAllByText('Buy').length).toBeGreaterThan(1));
+    await act(async () => { fireEvent.press(getAllByText('Buy')[1]); });
+    expect(mockGetUsage).toHaveBeenCalled();
+    expect(useStore.getState().credits).toBe(10);
+  });
+
+  it('navigates back after successful consumable purchase', async () => {
+    mockPurchaseStoreProduct.mockResolvedValueOnce({ customerInfo: { entitlements: { active: {} } } });
+    const { getByText, getAllByText } = render(<PaywallScreen />);
+    fireEvent.press(getByText('Pay As You Go'));
+    await waitFor(() => expect(getAllByText('Buy').length).toBeGreaterThan(0));
+    await act(async () => { fireEvent.press(getAllByText('Buy')[0]); });
+    expect(mockGoBack).toHaveBeenCalled();
+  });
+
+  it('shows alert on consumable purchase failure (non-cancellation)', async () => {
+    const err: any = new Error('Billing error');
+    err.code = 'BILLING_ERROR';
+    mockPurchaseStoreProduct.mockRejectedValueOnce(err);
+    const { getByText, getAllByText } = render(<PaywallScreen />);
+    fireEvent.press(getByText('Pay As You Go'));
+    await waitFor(() => expect(getAllByText('Buy').length).toBeGreaterThan(0));
+    await act(async () => { fireEvent.press(getAllByText('Buy')[0]); });
+    expect(mockAlert).toHaveBeenCalledWith('Purchase Error', expect.any(String));
+  });
+
+  it('does not show alert when consumable purchase is cancelled', async () => {
+    const err: any = new Error('Cancelled');
+    err.code = 'PURCHASE_CANCELLED_ERROR';
+    mockPurchaseStoreProduct.mockRejectedValueOnce(err);
+    const { getByText, getAllByText } = render(<PaywallScreen />);
+    fireEvent.press(getByText('Pay As You Go'));
+    await waitFor(() => expect(getAllByText('Buy').length).toBeGreaterThan(0));
+    await act(async () => { fireEvent.press(getAllByText('Buy')[0]); });
+    expect(mockAlert).not.toHaveBeenCalled();
   });
 });
 

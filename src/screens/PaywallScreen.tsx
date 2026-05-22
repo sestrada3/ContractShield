@@ -126,9 +126,11 @@ export default function PaywallScreen() {
     setLoading(productId);
     try {
       await Purchases.purchaseStoreProduct(product);
-      await syncPurchase();
+      // Credits are added by the RevenueCat webhook asynchronously. Apply optimistically
+      // so the user sees their balance immediately without waiting for the webhook.
+      const creditsToAdd = productId === PRODUCT_CREDIT_10 ? 10 : 1;
       const usage = await getUsage();
-      setUsage(usage.used, usage.limit, usage.credits);
+      setUsage(usage.used, usage.limit, usage.credits + creditsToAdd);
       navigation.goBack();
     } catch (e: any) {
       if (e?.code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR) return;
