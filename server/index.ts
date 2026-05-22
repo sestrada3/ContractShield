@@ -174,7 +174,9 @@ app.post('/api/analyze', rateLimit({ windowMs: 60_000, max: 5 }), requireAuth, a
         system,
         messages: [{ role: 'user' as const, content }],
       });
-      raw = (message.content[0] as any).text;
+      const block = message.content[0] as any;
+      if (!block || block.type !== 'text') return res.status(500).json({ error: 'Analysis failed. Please try again.' });
+      raw = block.text;
     }
 
     const result = parseJSON(raw);
