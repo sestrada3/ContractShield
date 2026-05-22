@@ -442,7 +442,7 @@ export const buildPrompt = (text?: string, isPro = false) => {
     .slice(0, charLimit);
 
   return 'Analyze this legal document. Return ONLY JSON with: score(1-10), type, verdict, summary, '
-    + 'clauses(3-5 items: title/risk[high|medium|low]/plain/excerpt/standard/benchmark/script/action), '
+    + 'clauses(3-5 items covering a mix of risk levels — include at least one medium or low risk clause when present, not all high: title/risk[high|medium|low]/plain/excerpt/standard/benchmark/script/action), '
     + 'dates(label/date/urgency[high|medium|low]/action), positives(string[]). Document: ' + clean;
 };
 
