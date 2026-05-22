@@ -79,11 +79,11 @@ export default function PaywallScreen() {
         Purchases.getOfferings(),
         Purchases.getProducts([PRODUCT_CREDIT_1, PRODUCT_CREDIT_10]),
       ]);
-      console.log('[Paywall] consumable products fetched:', products.length, products.map(p => p.productIdentifier));
+      Alert.alert('DEBUG: products', `Fetched: ${products.length}\n${products.map(p => p.productIdentifier).join('\n') || '(none)'}`);
       setOfferings(o);
       setConsumables(products);
     } catch (e: any) {
-      console.error('[Paywall] loadProducts error:', e?.message, e?.code);
+      Alert.alert('DEBUG: loadProducts error', e?.message || String(e));
     } finally {
       setLoadingProducts(false);
     }
