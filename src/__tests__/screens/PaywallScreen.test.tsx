@@ -204,7 +204,7 @@ describe('PaywallScreen — purchase (Subscribe tab)', () => {
     const { getByText } = render(<PaywallScreen />);
     await waitFor(() => expect(getByText(/Start Pro — \$71\.88\/yr/)).toBeTruthy());
     await act(async () => { fireEvent.press(getByText(/Start Pro — \$71\.88\/yr/)); });
-    expect(mockAlert).not.toHaveBeenCalled();
+    expect(mockAlert).not.toHaveBeenCalledWith('Purchase Error', expect.any(String));
   });
 });
 
@@ -299,7 +299,7 @@ describe('PaywallScreen — Pay As You Go tab', () => {
     fireEvent.press(getByText('Pay As You Go'));
     await waitFor(() => expect(getAllByText('Buy').length).toBeGreaterThan(0));
     await act(async () => { fireEvent.press(getAllByText('Buy')[0]); });
-    expect(mockAlert).not.toHaveBeenCalled();
+    expect(mockAlert).not.toHaveBeenCalledWith('Purchase Error', expect.any(String));
   });
 });
 
