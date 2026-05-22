@@ -83,7 +83,19 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
 
 app.use(express.json({ limit: '10mb' }));
 
-app.get('/health', (_req, res) => res.json({ ok: true, build: 'v9' }));
+app.get('/health', (_req, res) => res.json({ ok: true, build: 'v10' }));
+
+app.get('/api/diag/pdf', async (_req, res) => {
+  try {
+    const msg = await anthropic.messages.create(
+      { model: 'claude-haiku-4-5-20251001', max_tokens: 10, messages: [{ role: 'user', content: 'hi' }] },
+      { headers: { 'anthropic-beta': 'pdfs-2024-09-25' } },
+    );
+    res.json({ ok: true, content: msg.content });
+  } catch (e: any) {
+    res.json({ ok: false, status: e?.status, message: e?.message, detail: e?.error?.error });
+  }
+});
 
 // ── Clients ──────────────────────────────────────────────────────────────────
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
@@ -193,8 +205,9 @@ app.post('/api/analyze', rateLimit({ windowMs: 60_000, max: 5 }), requireAuth, a
 
     res.json(result);
   } catch (e: any) {
-    console.error('Analyze error:', e?.status, e?.message, e?.stack?.slice(0, 500));
-    res.status(500).json({ error: e?.message || 'Analysis failed. Please try again.' });
+    const detail = e?.error?.error?.message || e?.message || String(e);
+    console.error('Analyze error:', e?.status, detail, e?.stack?.slice(0, 300));
+    res.status(500).json({ error: detail || 'Analysis failed. Please try again.' });
   }
 });
 
