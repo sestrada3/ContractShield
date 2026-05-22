@@ -1,8 +1,9 @@
 {
-  "outputDirectory": "public",
+  "buildCommand": "cp -r public dist",
+  "outputDirectory": "dist",
   "framework": null,
-  "routes": [
-    { "src": "/admin", "dest": "/admin.html" },
-    { "src": "/support", "dest": "/support.html" }
+  "rewrites": [
+    { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/support", "destination": "/support.html" }
   ]
 }
