@@ -4,8 +4,6 @@ import rateLimit from 'express-rate-limit';
 import Anthropic from '@anthropic-ai/sdk';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const https = require('https') as typeof import('https');
 
 const app  = express();
 const port = process.env.PORT || 3001;
@@ -165,15 +163,13 @@ app.post('/api/analyze', rateLimit({ windowMs: 60_000, max: 5 }), requireAuth, a
 
     let raw: string;
 
-    if (pdfBase64) {
-      raw = await callAnthropicPDF(process.env.ANTHROPIC_API_KEY!, system, content);
-    } else {
-      const message = await anthropic.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 2000,
-        system,
-        messages: [{ role: 'user' as const, content }],
-      });
+    {
+      const model = pdfBase64 ? 'claude-sonnet-4-6' : 'claude-haiku-4-5-20251001';
+      const reqOpts = pdfBase64 ? { headers: { 'anthropic-beta': 'pdfs-2024-09-25' } } : {};
+      const message = await anthropic.messages.create(
+        { model, max_tokens: 2000, system, messages: [{ role: 'user' as const, content }] },
+        reqOpts,
+      );
       const block = message.content[0] as any;
       if (!block || block.type !== 'text') return res.status(500).json({ error: 'Analysis failed. Please try again.' });
       raw = block.text;
@@ -403,48 +399,6 @@ app.get('/payment-cancel', (_req, res) => {
 });
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-function callAnthropicPDF(apiKey: string, system: string, content: any): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const body = JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 2000,
-      system,
-      messages: [{ role: 'user', content }],
-    });
-
-    const req = https.request({
-      hostname: 'api.anthropic.com',
-      path: '/v1/messages',
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'content-length': Buffer.byteLength(body),
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'pdfs-2024-09-25',
-      },
-    }, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try {
-          const json = JSON.parse(data);
-          if (res.statusCode !== 200) {
-            return reject(new Error(json?.error?.message || `API error ${res.statusCode}: ${data.slice(0, 200)}`));
-          }
-          resolve(json.content[0].text);
-        } catch (e) {
-          reject(new Error('Failed to parse Anthropic response: ' + data.slice(0, 200)));
-        }
-      });
-    });
-
-    req.on('error', reject);
-    req.write(body);
-    req.end();
-  });
-}
 
 export const buildPrompt = (text?: string, isPro = false) => {
   const charLimit = isPro ? 20000 : 6000;
