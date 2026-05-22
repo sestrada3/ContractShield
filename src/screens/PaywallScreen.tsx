@@ -158,7 +158,7 @@ export default function PaywallScreen() {
         <View style={s.hero}>
           <View style={s.heroIconWrap}>
             <Image
-              source={require('../../assets/logo.png')}
+              source={require('../../assets/icon.png')}
               style={s.heroLogo}
               resizeMode="contain"
             />
