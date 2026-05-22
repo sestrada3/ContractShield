@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ContractShield — AI Legal Document Review</title>
+  <meta name="description" content="Know exactly what you're signing. AI reads every clause, scores every risk, and hands you word-for-word negotiation scripts in under 30 seconds.">
+  <meta property="og:title" content="ContractShield — AI Legal Document Review">
+  <meta property="og:description" content="Upload any contract, NDA, lease, or job offer. Get instant plain-English analysis with negotiation scripts.">
+  <meta property="og:image" content="https://getcontractshield.app/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    /* ── Reset & Base ───────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:     #0d0f15;
+      --surf:   #171b26;
+      --hi:     #1e2333;
+      --gold:   #c9a84c;
+      --goldD:  #8b6914;
+      --green:  #4caf7d;
+      --red:    #e05252;
+      --amber:  #e0993a;
+      --blue:   #4a9eff;
+      --t:      rgba(255,255,255,0.92);
+      --tm:     rgba(255,255,255,0.55);
+      --td:     rgba(255,255,255,0.28);
+      --border: rgba(255,255,255,0.08);
+      --r:      14px;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--t);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; text-decoration: none; }
+    img { display: block; max-width: 100%; }
+
+    /* ── Layout ─────────────────────────────────────── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+    .section   { padding: 96px 0; }
+
+    /* ── Nav ─────────────────────────────────────────── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      border-bottom: 1px solid transparent;
+      transition: background .3s, border-color .3s, backdrop-filter .3s;
+    }
+    nav.scrolled {
+      background: rgba(13,15,21,0.85);
+      backdrop-filter: blur(12px);
+      border-color: var(--border);
+    }
+    .nav-inner {
+      max-width: 1100px; margin: 0 auto; padding: 0 24px;
+      height: 64px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 17px; font-weight: 800; color: var(--t);
+    }
+    .nav-logo svg { flex-shrink: 0; }
+    .nav-links {
+      display: flex; gap: 32px; list-style: none;
+    }
+    .nav-links a {
+      font-size: 14px; font-weight: 500; color: var(--tm);
+      transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--t); }
+    .nav-cta {
+      background: var(--gold); color: #0b0d12;
+      font-size: 14px; font-weight: 700;
+      padding: 9px 20px; border-radius: 9px;
+      transition: opacity .2s;
+    }
+    .nav-cta:hover { opacity: 0.88; }
+    .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 4px; }
+
+    /* ── Hero ────────────────────────────────────────── */
+    .hero {
+      padding: 140px 0 80px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 700px; height: 700px;
+      background: radial-gradient(circle, rgba(201,168,76,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-eyebrow {
+      display: inline-block;
+      font-size: 11px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-size: clamp(38px, 6vw, 72px);
+      font-weight: 900; line-height: 1.08; letter-spacing: -0.03em;
+      color: var(--t); margin-bottom: 22px; max-width: 820px; margin-left: auto; margin-right: auto;
+    }
+    .hero h1 em { font-style: normal; color: var(--gold); }
+    .hero-sub {
+      font-size: clamp(16px, 2vw, 20px); color: var(--tm); line-height: 1.65;
+      max-width: 540px; margin: 0 auto 40px;
+    }
+    .hero-ctas {
+      display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 52px;
+    }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--gold); color: #0b0d12;
+      font-weight: 800; font-size: 15px; padding: 15px 28px; border-radius: 12px;
+      transition: opacity .2s, transform .15s;
+    }
+    .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-secondary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--surf); color: var(--t);
+      font-weight: 600; font-size: 15px; padding: 15px 28px; border-radius: 12px;
+      border: 1px solid var(--border);
+      transition: border-color .2s, transform .15s;
+    }
+    .btn-secondary:hover { border-color: rgba(255,255,255,0.18); transform: translateY(-1px); }
+    .hero-trust {
+      display: flex; gap: 24px; justify-content: center; flex-wrap: wrap;
+    }
+    .hero-trust-item {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 600; color: var(--blue);
+    }
+    .hero-trust-item svg { flex-shrink: 0; }
+
+    /* ── Phone Mockup ────────────────────────────────── */
+    .hero-visual {
+      margin: 60px auto 0;
+      max-width: 360px;
+      position: relative;
+    }
+    .phone-frame {
+      background: var(--surf);
+      border-radius: 40px;
+      border: 1.5px solid rgba(255,255,255,0.1);
+      padding: 18px;
+      box-shadow: 0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+      overflow: hidden;
+    }
+    .phone-notch {
+      width: 90px; height: 26px;
+      background: var(--bg); border-radius: 0 0 16px 16px;
+      margin: 0 auto 14px;
+    }
+    .phone-screen { border-radius: 26px; overflow: hidden; background: var(--bg); }
+    /* Score card inside phone */
+    .mock-score-card {
+      background: var(--surf); border-radius: 16px; padding: 20px;
+      margin: 12px; border: 1px solid var(--border);
+      text-align: center;
+    }
+    .mock-type-badge {
+      display: inline-block; font-size: 9px; letter-spacing: 1.8px;
+      text-transform: uppercase; color: var(--td);
+      background: var(--hi); border-radius: 20px;
+      padding: 4px 12px; margin-bottom: 14px;
+    }
+    .mock-ring-wrap { position: relative; width: 110px; height: 110px; margin: 0 auto 12px; }
+    .mock-ring-wrap svg { transform: rotate(-90deg); }
+    .mock-ring-score {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .mock-ring-score .num { font-size: 32px; font-weight: 900; color: var(--amber); line-height: 1; }
+    .mock-ring-score .lbl { font-size: 8px; color: var(--td); letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
+    .mock-verdict { font-size: 12px; font-weight: 700; color: var(--t); margin-bottom: 6px; line-height: 1.4; }
+    .mock-summary { font-size: 10px; color: var(--tm); line-height: 1.5; margin-bottom: 14px; }
+    .mock-stats { display: flex; gap: 0; border-top: 1px solid var(--border); padding-top: 12px; }
+    .mock-stat { flex: 1; text-align: center; }
+    .mock-stat + .mock-stat { border-left: 1px solid var(--border); }
+    .mock-stat .val { font-size: 18px; font-weight: 800; }
+    .mock-stat .key { font-size: 8px; color: var(--td); text-transform: uppercase; letter-spacing: 0.8px; }
+    /* Clause card in phone */
+    .mock-clause {
+      margin: 0 12px 12px;
+      background: var(--surf); border-radius: 10px;
+      border-left: 3px solid var(--red); overflow: hidden;
+    }
+    .mock-clause-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 12px;
+    }
+    .mock-clause-num { font-size: 9px; color: var(--td); font-family: monospace; }
+    .mock-clause-title { flex: 1; font-size: 11px; font-weight: 600; }
+    .mock-risk-pill {
+      font-size: 8px; font-weight: 800; letter-spacing: 0.5px;
+      background: rgba(224,82,82,0.12); color: var(--red);
+      border-radius: 4px; padding: 2px 6px;
+    }
+    .mock-script-box {
+      margin: 0 12px 12px; border-radius: 8px; padding: 10px;
+      background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.22);
+    }
+    .mock-script-label { font-size: 8px; font-weight: 700; color: var(--gold); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 5px; }
+    .mock-script-text { font-size: 10px; color: rgba(212,184,106,0.85); line-height: 1.5; font-style: italic; }
+
+    /* ── Social Proof Bar ────────────────────────────── */
+    .proof-bar {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 0;
+      background: var(--surf);
+    }
+    .proof-bar-inner {
+      display: flex; align-items: center; justify-content: center;
+      gap: 40px; flex-wrap: wrap;
+    }
+    .proof-item {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; color: var(--tm); font-weight: 500;
+    }
+    .proof-item svg { color: var(--gold); flex-shrink: 0; }
+
+    /* ── Problem/Hook ────────────────────────────────── */
+    .problem { text-align: center; }
+    .problem .label {
+      font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+      color: var(--red); margin-bottom: 16px;
+    }
+    .problem h2 { font-size: clamp(28px, 4vw, 46px); font-weight: 800; line-height: 1.2; margin-bottom: 20px; }
+    .problem p { font-size: 17px; color: var(--tm); max-width: 600px; margin: 0 auto 48px; line-height: 1.7; }
+    .problem-stats {
+      display: flex; gap: 2px; max-width: 760px; margin: 0 auto;
+      border-radius: 16px; overflow: hidden;
+    }
+    .problem-stat {
+      flex: 1; background: var(--surf); padding: 28px 20px; text-align: center;
+    }
+    .problem-stat .big { font-size: 38px; font-weight: 900; color: var(--red); line-height: 1; margin-bottom: 8px; }
+    .problem-stat .desc { font-size: 12px; color: var(--tm); line-height: 1.5; }
+
+    /* ── How It Works ────────────────────────────────── */
+    .steps-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px;
+      border-radius: 16px; overflow: hidden; margin-top: 48px;
+    }
+    .step-card { background: var(--surf); padding: 36px 28px; }
+    .step-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 40px; height: 40px; border-radius: 12px;
+      font-size: 15px; font-weight: 800;
+      margin-bottom: 20px;
+    }
+    .step-card h3 { font-size: 20px; font-weight: 800; margin-bottom: 10px; }
+    .step-card p { font-size: 14px; color: var(--tm); line-height: 1.65; }
+    .step-formats {
+      display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px;
+    }
+    .format-chip {
+      font-size: 11px; font-weight: 600; color: var(--td);
+      background: var(--hi); border-radius: 6px; padding: 3px 9px;
+    }
+
+    /* ── Features ────────────────────────────────────── */
+    .features-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 2px;
+      border-radius: 16px; overflow: hidden; margin-top: 48px;
+    }
+    .feature-card { background: var(--surf); padding: 40px 36px; }
+    .feature-card.accent-gold { border-top: 3px solid var(--gold); }
+    .feature-card.accent-green { border-top: 3px solid var(--green); }
+    .feature-card.accent-blue { border-top: 3px solid var(--blue); }
+    .feature-card.accent-red { border-top: 3px solid var(--red); }
+    .feature-icon {
+      width: 48px; height: 48px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px; font-size: 22px;
+    }
+    .feature-card h3 { font-size: 22px; font-weight: 800; margin-bottom: 10px; }
+    .feature-card p { font-size: 15px; color: var(--tm); line-height: 1.7; margin-bottom: 18px; }
+    .feature-bullets { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .feature-bullets li {
+      font-size: 13px; color: var(--tm); display: flex; align-items: flex-start; gap: 8px;
+    }
+    .feature-bullets li::before {
+      content: '✓'; color: var(--green); font-weight: 800; flex-shrink: 0; margin-top: 1px;
+    }
+    /* Big feature highlight */
+    .feature-highlight {
+      grid-column: 1 / -1;
+      background: var(--surf); border-radius: 0; padding: 52px 36px;
+      display: flex; gap: 60px; align-items: center;
+    }
+    .feature-highlight .text { flex: 1; }
+    .feature-highlight .visual { flex: 1; }
+    .script-demo {
+      background: rgba(201,168,76,0.07); border-radius: 14px; padding: 20px;
+      border: 1px solid rgba(201,168,76,0.2);
+    }
+    .script-demo-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 10px;
+    }
+    .script-demo-text {
+      font-size: 15px; color: rgba(212,184,106,0.88); line-height: 1.65; font-style: italic;
+    }
+    .script-demo-meta {
+      margin-top: 14px; font-size: 11px; color: var(--td);
+    }
+
+    /* ── Testimonials ────────────────────────────────── */
+    .section-header { text-align: center; margin-bottom: 48px; }
+    .section-header .label {
+      font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 12px;
+    }
+    .section-header h2 { font-size: clamp(28px, 4vw, 44px); font-weight: 800; line-height: 1.2; }
+    .section-header p { font-size: 17px; color: var(--tm); margin-top: 14px; }
+    .testimonials-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    }
+    .testimonial-card {
+      background: var(--surf); border-radius: 16px; padding: 28px;
+      border: 1px solid var(--border);
+    }
+    .stars { display: flex; gap: 3px; margin-bottom: 16px; }
+    .star { width: 14px; height: 14px; fill: var(--gold); }
+    .testimonial-quote {
+      font-size: 15px; line-height: 1.65; color: var(--t); margin-bottom: 20px; font-style: italic;
+    }
+    .testimonial-author { display: flex; align-items: center; gap: 12px; }
+    .avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: rgba(201,168,76,0.12); border: 1.5px solid rgba(201,168,76,0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800; color: var(--gold); flex-shrink: 0;
+    }
+    .author-name { font-size: 13px; font-weight: 700; }
+    .author-role { font-size: 11px; color: var(--td); margin-top: 1px; }
+    .testimonial-result {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 700; color: var(--green);
+      background: rgba(76,175,125,0.1); border-radius: 6px;
+      padding: 4px 10px; margin-top: 14px;
+    }
+
+    /* ── Pricing ─────────────────────────────────────── */
+    .pricing-grid {
+      display: grid; grid-template-columns: 1fr 1.1fr 1fr; gap: 16px;
+      align-items: start; margin-top: 48px;
+    }
+    .pricing-card {
+      background: var(--surf); border-radius: 20px; padding: 32px;
+      border: 1px solid var(--border);
+    }
+    .pricing-card.featured {
+      background: var(--hi); border-color: rgba(201,168,76,0.35);
+      box-shadow: 0 0 0 1px rgba(201,168,76,0.15), 0 20px 40px rgba(0,0,0,0.3);
+    }
+    .pricing-badge {
+      display: inline-block; font-size: 9px; font-weight: 800; letter-spacing: 0.8px;
+      text-transform: uppercase; background: var(--gold); color: #0b0d12;
+      border-radius: 6px; padding: 4px 10px; margin-bottom: 20px;
+    }
+    .pricing-name { font-size: 13px; font-weight: 700; color: var(--tm); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .pricing-price { font-size: 44px; font-weight: 900; color: var(--t); line-height: 1; }
+    .pricing-price span { font-size: 16px; font-weight: 500; color: var(--tm); }
+    .pricing-sub { font-size: 12px; color: var(--td); margin-top: 4px; margin-bottom: 24px; }
+    .pricing-savings { font-size: 12px; font-weight: 700; color: var(--green); margin-bottom: 24px; }
+    .pricing-divider { height: 1px; background: var(--border); margin: 20px 0; }
+    .pricing-features { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+    .pricing-features li { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; color: var(--t); }
+    .pricing-features li svg { flex-shrink: 0; margin-top: 2px; }
+    .pricing-features li.dim { color: var(--td); }
+    .pricing-cta {
+      display: block; text-align: center; padding: 15px;
+      font-size: 15px; font-weight: 800; border-radius: 12px;
+      transition: opacity .2s, transform .15s;
+    }
+    .pricing-cta:hover { opacity: 0.88; transform: translateY(-1px); }
+    .pricing-cta.gold { background: var(--gold); color: #0b0d12; }
+    .pricing-cta.outline { border: 1.5px solid var(--border); color: var(--tm); }
+    .pricing-legal { font-size: 11px; color: var(--td); text-align: center; margin-top: 10px; }
+    .payg-cards { display: flex; gap: 12px; margin-top: 16px; }
+    .payg-mini {
+      flex: 1; background: var(--bg); border-radius: 10px; padding: 14px;
+      border: 1px solid var(--border); text-align: center;
+    }
+    .payg-mini .price { font-size: 22px; font-weight: 900; color: var(--t); }
+    .payg-mini .name { font-size: 11px; color: var(--tm); margin-top: 2px; }
+
+    /* ── FAQ ─────────────────────────────────────────── */
+    .faq-list { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 2px; border-radius: 16px; overflow: hidden; }
+    .faq-item { background: var(--surf); }
+    .faq-question {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      padding: 22px 24px; background: none; border: none; color: var(--t);
+      font-size: 16px; font-weight: 600; text-align: left; cursor: pointer;
+      gap: 16px;
+    }
+    .faq-question:hover { background: rgba(255,255,255,0.02); }
+    .faq-icon { flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; transition: transform .25s, border-color .25s; }
+    .faq-item.open .faq-icon { transform: rotate(45deg); border-color: var(--gold); }
+    .faq-answer { font-size: 15px; color: var(--tm); line-height: 1.7; max-height: 0; overflow: hidden; transition: max-height .3s ease, padding .3s ease; }
+    .faq-item.open .faq-answer { max-height: 300px; padding: 0 24px 22px; }
+
+    /* ── Final CTA ───────────────────────────────────── */
+    .cta-band {
+      background: linear-gradient(135deg, rgba(201,168,76,0.12) 0%, rgba(201,168,76,0.04) 100%);
+      border-top: 1px solid rgba(201,168,76,0.18);
+      border-bottom: 1px solid rgba(201,168,76,0.18);
+      text-align: center; padding: 80px 24px;
+    }
+    .cta-band h2 { font-size: clamp(28px, 4vw, 52px); font-weight: 900; line-height: 1.15; margin-bottom: 16px; }
+    .cta-band p { font-size: 18px; color: var(--tm); margin-bottom: 36px; }
+    .cta-band .btn-primary { font-size: 17px; padding: 18px 36px; }
+    .cta-free-note { font-size: 13px; color: var(--td); margin-top: 16px; }
+
+    /* ── Footer ──────────────────────────────────────── */
+    footer {
+      padding: 52px 24px; border-top: 1px solid var(--border);
+    }
+    .footer-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; gap: 48px; flex-wrap: wrap; justify-content: space-between;
+    }
+    .footer-brand .logo { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; font-size: 16px; font-weight: 800; }
+    .footer-brand p { font-size: 13px; color: var(--td); line-height: 1.6; max-width: 220px; }
+    .footer-col h4 { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--td); margin-bottom: 14px; }
+    .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+    .footer-col ul a { font-size: 14px; color: var(--tm); transition: color .2s; }
+    .footer-col ul a:hover { color: var(--t); }
+    .footer-bottom {
+      max-width: 1100px; margin: 32px auto 0;
+      padding-top: 24px; border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+    }
+    .footer-bottom p { font-size: 12px; color: var(--td); }
+    .footer-legal { display: flex; gap: 20px; }
+    .footer-legal a { font-size: 12px; color: var(--td); transition: color .2s; }
+    .footer-legal a:hover { color: var(--tm); }
+
+    /* ── Utilities ───────────────────────────────────── */
+    .text-gold { color: var(--gold); }
+    .text-green { color: var(--green); }
+    .text-red { color: var(--red); }
+    .text-blue { color: var(--blue); }
+
+    /* ── Responsive ──────────────────────────────────── */
+    @media (max-width: 900px) {
+      .steps-grid { grid-template-columns: 1fr; }
+      .features-grid { grid-template-columns: 1fr; }
+      .feature-highlight { flex-direction: column; gap: 32px; }
+      .testimonials-grid { grid-template-columns: 1fr; }
+      .pricing-grid { grid-template-columns: 1fr; }
+      .payg-cards { flex-direction: column; }
+      .nav-links { display: none; }
+      .nav-hamburger { display: block; }
+      .proof-bar-inner { gap: 20px; }
+      .problem-stats { flex-direction: column; }
+    }
+    @media (max-width: 600px) {
+      .hero { padding: 110px 0 60px; }
+      .hero-ctas { flex-direction: column; align-items: center; }
+      .section { padding: 64px 0; }
+      .footer-inner { flex-direction: column; gap: 32px; }
+      .footer-bottom { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ NAV ══════════════════════════════════════════════ -->
+<nav id="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+        <path d="M13 2L4 6v8c0 5.25 3.8 10.15 9 11.35C18.2 24.15 22 19.25 22 14V6L13 2z" fill="rgba(201,168,76,0.15)" stroke="#c9a84c" stroke-width="1.5"/>
+        <path d="M9.5 13l2.5 2.5 5-5" stroke="#c9a84c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      ContractShield
+    </a>
+    <ul class="nav-links">
+      <li><a href="#how-it-works">How it works</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ul>
+    <a href="#download" class="nav-cta">Get the App</a>
+    <button class="nav-hamburger" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <path d="M3 6h16M3 11h16M3 16h16" stroke="rgba(255,255,255,0.6)" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+</nav>
+
+<!-- ══ HERO ═════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="container">
+    <span class="hero-eyebrow">AI Legal Document Review</span>
+    <h1>Know exactly<br>what you're <em>signing.</em></h1>
+    <p class="hero-sub">Upload any contract, NDA, lease, or job offer. Get instant plain-English analysis with clause-by-clause risk scores and word-for-word negotiation scripts.</p>
+
+    <div class="hero-ctas">
+      <a href="#download" class="btn-primary" id="download">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2v10m0 0L5.5 8.5M9 12l3.5-3.5M3 15h12" stroke="#0b0d12" stroke-width="2" stroke-linecap="round"/></svg>
+        Download Free — iOS
+      </a>
+      <a href="#how-it-works" class="btn-secondary">See how it works →</a>
+    </div>
+
+    <div class="hero-trust">
+      <div class="hero-trust-item">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1L1.75 3.5v5.25C1.75 11.62 4.165 13.93 7 14.35c2.835-.42 5.25-2.73 5.25-5.6V3.5L7 1z" fill="rgba(74,158,255,0.15)" stroke="#4a9eff" stroke-width="1.2"/></svg>
+        Encrypted transit
+      </div>
+      <div class="hero-trust-item">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7a5 5 0 1010 0A5 5 0 002 7z" stroke="#4a9eff" stroke-width="1.2"/><path d="M7 4v3l2 1" stroke="#4a9eff" stroke-width="1.2" stroke-linecap="round"/></svg>
+        PII automatically stripped
+      </div>
+      <div class="hero-trust-item">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5" stroke="#4a9eff" stroke-width="1.2"/><path d="M5 7l1.5 1.5L9 5.5" stroke="#4a9eff" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Results in 30 seconds
+      </div>
+      <div class="hero-trust-item">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1L8.8 5h4.2L9.6 7.8l1.4 4L7 9.5l-4 2.3 1.4-4L1 5h4.2L7 1z" fill="rgba(74,158,255,0.15)" stroke="#4a9eff" stroke-width="1.2"/></svg>
+        Never stored or shared
+      </div>
+    </div>
+
+    <!-- Phone mockup -->
+    <div class="hero-visual">
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="mock-score-card">
+            <div class="mock-type-badge">Employment Contract</div>
+            <div class="mock-ring-wrap">
+              <svg width="110" height="110" viewBox="0 0 110 110">
+                <circle cx="55" cy="55" r="44" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"/>
+                <circle cx="55" cy="55" r="44" fill="none" stroke="#e0993a" stroke-width="8"
+                  stroke-dasharray="276.5" stroke-dashoffset="82.9" stroke-linecap="round"
+                  style="transition: stroke-dashoffset 1.4s ease-out;"/>
+              </svg>
+              <div class="mock-ring-score">
+                <span class="num">7</span>
+                <span class="lbl">Moderate</span>
+              </div>
+            </div>
+            <div class="mock-verdict">"Review before signing — 2 clauses need negotiation"</div>
+            <div class="mock-summary">Non-compete and IP assignment clauses are broader than industry standard.</div>
+            <div class="mock-stats">
+              <div class="mock-stat">
+                <div class="val text-red">2</div>
+                <div class="key">Red Flags</div>
+              </div>
+              <div class="mock-stat">
+                <div class="val text-gold">5</div>
+                <div class="key">Clauses</div>
+              </div>
+              <div class="mock-stat">
+                <div class="val text-blue">3</div>
+                <div class="key">Key Dates</div>
+              </div>
+              <div class="mock-stat">
+                <div class="val text-green">4</div>
+                <div class="key">Positives</div>
+              </div>
+            </div>
+          </div>
+          <div class="mock-clause">
+            <div class="mock-clause-header">
+              <span class="mock-clause-num">#01</span>
+              <span class="mock-clause-title">Non-Compete Clause</span>
+              <span class="mock-risk-pill">HIGH RISK</span>
+            </div>
+          </div>
+          <div class="mock-script-box">
+            <div class="mock-script-label">What to Say</div>
+            <div class="mock-script-text">"I'd like to limit the non-compete to 6 months and narrow it to direct competitors."</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ SOCIAL PROOF BAR ══════════════════════════════════ -->
+<div class="proof-bar">
+  <div class="container">
+    <div class="proof-bar-inner">
+      <div class="proof-item">
+        <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M8 1l1.9 3.9L14 5.6l-3 2.9.7 4.1L8 10.4l-3.7 2.2.7-4.1L2 5.6l4.1-.7L8 1z" fill="#c9a84c"/></svg>
+        App Store Rating
+      </div>
+      <div class="proof-item">
+        <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M8 1L9.5 6h5L10 9.3l1.9 4.7L8 11.2 4.1 14 6 9.3 1.5 6h5z" fill="#c9a84c"/></svg>
+        Works on iPhone &amp; iPad
+      </div>
+      <div class="proof-item">
+        <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M13 6H3m10 4H3" stroke="#c9a84c" stroke-width="1.5" stroke-linecap="round"/><rect x="1" y="2" width="14" height="12" rx="2" stroke="#c9a84c" stroke-width="1.5"/></svg>
+        PDF, Photo, or Paste
+      </div>
+      <div class="proof-item">
+        <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M8 2a6 6 0 100 12A6 6 0 008 2zm0 4v4m0 0h2" stroke="#c9a84c" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Analysis in 30 seconds
+      </div>
+      <div class="proof-item">
+        <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M7 1.75L2 4v6c0 3 2.25 5.8 5 6.25C9.75 15.8 12 13 12 10V4L7 1.75z" fill="rgba(201,168,76,0.15)" stroke="#c9a84c" stroke-width="1.3"/></svg>
+        Privacy-first by design
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PROBLEM ══════════════════════════════════════════ -->
+<section class="section">
+  <div class="container problem">
+    <p class="label">The problem</p>
+    <h2>You shouldn't need a lawyer<br>for every contract you sign.</h2>
+    <p>Most people skim contracts, hope for the best, and discover the problems later — hidden auto-renewals, broad non-competes, one-sided IP clauses. ContractShield changes that.</p>
+    <div class="problem-stats">
+      <div class="problem-stat">
+        <div class="big">77%</div>
+        <div class="desc">of people sign contracts without fully reading them</div>
+      </div>
+      <div class="problem-stat">
+        <div class="big">$350+</div>
+        <div class="desc">average hourly rate for a lawyer to review one contract</div>
+      </div>
+      <div class="problem-stat">
+        <div class="big">30s</div>
+        <div class="desc">time ContractShield takes to give you the same clarity</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ HOW IT WORKS ══════════════════════════════════════ -->
+<section class="section" id="how-it-works">
+  <div class="container">
+    <div class="section-header">
+      <p class="label">How it works</p>
+      <h2>Three steps to<br>total contract clarity</h2>
+    </div>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-num" style="background:rgba(201,168,76,0.12); color:#c9a84c;">1</div>
+        <h3>Upload your contract</h3>
+        <p>Snap a photo, upload a PDF, or paste the text. ContractShield handles any format — employment offers, NDAs, leases, freelance agreements, and more.</p>
+        <div class="step-formats">
+          <span class="format-chip">PDF</span>
+          <span class="format-chip">Camera</span>
+          <span class="format-chip">Photo</span>
+          <span class="format-chip">Text</span>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num" style="background:rgba(74,158,255,0.12); color:#4a9eff;">2</div>
+        <h3>AI reads every clause</h3>
+        <p>Our AI scores each clause on a 1–10 risk scale, benchmarks it against industry standards, and flags anything unusual — in plain English, not legal jargon.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num" style="background:rgba(76,175,125,0.12); color:#4caf7d;">3</div>
+        <h3>Negotiate with confidence</h3>
+        <p>Get a word-for-word negotiation script for every red-flag clause. Copy it, say it, and protect yourself — without needing a law degree.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FEATURES ══════════════════════════════════════════ -->
+<section class="section" id="features" style="padding-top:0;">
+  <div class="container">
+    <div class="section-header">
+      <p class="label">Features</p>
+      <h2>Everything you need<br>to sign with confidence</h2>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card accent-gold">
+        <div class="feature-icon" style="background:rgba(201,168,76,0.1);">⚖️</div>
+        <h3>Risk Score &amp; Verdict</h3>
+        <p>Every contract gets a 1–10 fairness score with a plain-English verdict. Instantly know if you're looking at a standard deal or something to push back on.</p>
+        <ul class="feature-bullets">
+          <li>Animated score ring shows risk at a glance</li>
+          <li>Color-coded: green / amber / red</li>
+          <li>Benchmarked against real contracts in your category</li>
+        </ul>
+      </div>
+      <div class="feature-card accent-red">
+        <div class="feature-icon" style="background:rgba(224,82,82,0.1);">📋</div>
+        <h3>Clause-by-Clause Analysis</h3>
+        <p>Every clause is extracted, rated HIGH / MEDIUM / FAVORABLE, and explained in plain English with the original legal text alongside for reference.</p>
+        <ul class="feature-bullets">
+          <li>Automatic identification of non-competes, IP grabs, auto-renewals</li>
+          <li>Market benchmark on every clause</li>
+          <li>One-tap expand to see the full original text</li>
+        </ul>
+      </div>
+
+      <!-- Script highlight — full width -->
+      <div class="feature-highlight accent-gold">
+        <div class="text">
+          <div class="feature-icon" style="background:rgba(201,168,76,0.1); margin-bottom:16px;">💬</div>
+          <h3 style="font-size:26px; margin-bottom:12px;">"What to Say" — Negotiation Scripts</h3>
+          <p style="font-size:15px; color:var(--tm); line-height:1.7; margin-bottom:20px;">
+            This is the feature that sets ContractShield apart. Every red-flag clause comes with a copy-ready negotiation script — the exact words to say to get better terms. No guesswork. No awkward silence.
+          </p>
+          <ul class="feature-bullets">
+            <li>Word-for-word language you can use in an email or call</li>
+            <li>Calibrated to be firm but professional</li>
+            <li>One-tap copy to clipboard</li>
+          </ul>
+        </div>
+        <div class="visual">
+          <div class="script-demo">
+            <div class="script-demo-label">What to Say · Non-Compete Clause</div>
+            <div class="script-demo-text">"I'm excited to join the team. Before I sign, I'd like to discuss the non-compete clause. In my field, a 2-year, nationwide restriction is broader than the industry norm — would you be open to narrowing it to 6 months and limiting it to direct competitors?"</div>
+            <div class="script-demo-meta">Copy · Use it exactly as written</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-card accent-blue">
+        <div class="feature-icon" style="background:rgba(74,158,255,0.1);">📅</div>
+        <h3>Key Dates &amp; Deadlines</h3>
+        <p>ContractShield extracts every important date — opt-out windows, renewal deadlines, notice periods — and flags them by urgency so nothing slips past you.</p>
+        <ul class="feature-bullets">
+          <li>Color-coded urgency: high / medium / low</li>
+          <li>Plain-English description of each deadline</li>
+          <li>Action steps for each date</li>
+        </ul>
+      </div>
+      <div class="feature-card accent-green">
+        <div class="feature-icon" style="background:rgba(76,175,125,0.1);">🔒</div>
+        <h3>Privacy-First by Design</h3>
+        <p>Your contract is analyzed and immediately discarded. PII is automatically stripped before processing. Your sensitive documents are never stored on our servers.</p>
+        <ul class="feature-bullets">
+          <li>Encrypted in transit (TLS)</li>
+          <li>SSNs, emails, phone numbers auto-redacted</li>
+          <li>Only your results are saved — never the document</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ TESTIMONIALS ══════════════════════════════════════ -->
+<section class="section" style="background:var(--surf); padding: 80px 0;">
+  <div class="container">
+    <div class="section-header">
+      <p class="label">What users say</p>
+      <h2>Real results from<br>real signers</h2>
+    </div>
+    <div class="testimonials-grid">
+      <div class="testimonial-card">
+        <div class="stars">
+          <svg class="star" viewBox="0 0 14 14"><path d="M7 1l1.6 3.7L13 5.3l-3 2.8.7 3.9L7 10.1 3.3 12l.7-3.9L1 5.3l4.4-.6z"/></svg>
+          <svg class="star" viewBox="0 0 14 14"><path d="M7 1l1.6 3.7L13 5.3l-3 2.8.7 3.9L7 10.1 3.3 12l.7-3.9L1 5.3l4.4-.6z"/></svg>
+          <svg class="star" viewBox="0 0 14 14"><path d="M7 1l1.6 3.7L13 5.3l-3 2.8.7 3.9L7 10.1 3.3 12l.7-3.9L1 5.3l4.4-.6z"/></svg>
+          <svg class="star" viewBox="0 0 14 14"><path d="M7 1l1.6 3.7L13 5.3l-3 2.8.7 3.9L7 10.1 3.3 12l.7-3.9L1 5.3l4.4-.6z"/></svg>
+          <svg class="star" viewBox="0 0 14 14"><path d="M7 1l1.6 3.7L13 5.3l-3 2.8.7 3.9L7 10.1 3.3 12l.7-3.9L1 5.3l4.4-.6z"/></svg>
+        </div>
+        <p class="testimonial-quote">"Found a hidden auto-renewal clause buried on page 8 of my apartment lease. Used the negotiation script and got it removed before I signed."</p>
+        <div class="testimonial-author">
+          <div class="avatar">MT</div>
+          <div>
+            <div class="author-name">Marcus T.</div>
+            <div class="author-role">Renter · Austin, TX</div>
+          </div>
+        </div>
+        <span class="testimonial-result">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#4caf7d" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Saved $1,200 on lease renewal
+        </span>
+      </div>
+
+      <div class="testimonial-card">
+        <div class="stars">
+          <svg class="star" viewBox="0 0 14 14"><path d="M7 1l1.6 3.7L13 5.3l-3 2.8.7 3.9L7 10.1 3.3 12l.7-3.9L1 5.3l4.4-.6z"/></svg>
+          <svg class="star" viewBox="0 0 14 14"><path d="M7 1l1.6 3.7L13 5.3l-3 2.8.7 3.9L7 10.1 3.3 12l.7-3.9L1 5.3l4.4-.6z"/></svg>
+          <svg class="star" viewBox="0 0 14 14"><path d="M7 1l1.6 3.7L13 5.3l-3 2.8.7 3.9L7 10.1 3.3 12l.7-3.9L1 5.3l4.4-.6z"/></svg>
+          <svg class="star" viewBox="0 0 14 14"><path d="M7 1l1.6 3.7L13 5.3l-3 2.8.7 3.9L7 10.1 3.3 12l.7-3.9L1 5.3l4.4-.6z"/></svg>
+          <svg class="star" viewBox="0 0 14 14"><path d="M7 1l1.6 3.7L13 5.3l-3 2.8.7 3.9L7 10.1 3.3 12l.7-3.9L1 5.3l4.4-.6z"/></svg>
+        </div>
+        <p class="testimonial-quote">"The negotiation scripts are the real killer feature. I used one word-for-word on a job offer and got my non-compete narrowed from 2 years to 90 days."</p>
+        <div class="testimonial-author">
+          <div class="avatar">PS</div>
+          <div>
+            <div class="author-name">Priya S.</div>
+            <div class="author-role">Software Engineer</div>
+          </div>
+        </div>
+        <span class="testimonial-result">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#4caf7d" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Non-compete reduced by 90%
+        </span>
+      </div>
+
+      <div class="testimonial-card">
+        <div class="stars">
+          <svg class="star" viewBox="0 0 14 14"><path d="M7 1l1.6 3.7L13 5.3l-3 2.8.7 3.9L7 10.1 3.3 12l.7-3.9L1 5.3l4.4-.6z"/></svg>
+          <svg class="star" viewBox="0 0 14 14"><path d="M7 1l1.6 3.7L13 5.3l-3 2.8.7 3.9L7 10.1 3.3 12l.7-3.9L1 5.3l4.4-.6z"/></svg>
+          <svg class="star" viewBox="0 0 14 14"><path d="M7 1l1.6 3.7L13 5.3l-3 2.8.7 3.9L7 10.1 3.3 12l.7-3.9L1 5.3l4.4-.6z"/></svg>
+          <svg class="star" viewBox="0 0 14 14"><path d="M7 1l1.6 3.7L13 5.3l-3 2.8.7 3.9L7 10.1 3.3 12l.7-3.9L1 5.3l4.4-.6z"/></svg>
+          <svg class="star" viewBox="0 0 14 14"><path d="M7 1l1.6 3.7L13 5.3l-3 2.8.7 3.9L7 10.1 3.3 12l.7-3.9L1 5.3l4.4-.6z"/></svg>
+        </div>
+        <p class="testimonial-quote">"I review freelance contracts every week. ContractShield Pro pays for itself on the first contract — I've probably saved $20K in bad IP clauses this year alone."</p>
+        <div class="testimonial-author">
+          <div class="avatar">JK</div>
+          <div>
+            <div class="author-name">Jordan K.</div>
+            <div class="author-role">Creative Director · Freelancer</div>
+          </div>
+        </div>
+        <span class="testimonial-result">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#4caf7d" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Protects IP on every contract
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ PRICING ═══════════════════════════════════════════ -->
+<section class="section" id="pricing">
+  <div class="container">
+    <div class="section-header">
+      <p class="label">Pricing</p>
+      <h2>Start free.<br>Go Pro when you're ready.</h2>
+      <p>Three free analyses to start. No credit card required.</p>
+    </div>
+    <div class="pricing-grid">
+
+      <!-- Free -->
+      <div class="pricing-card">
+        <div class="pricing-name">Free</div>
+        <div class="pricing-price">$0<span>/mo</span></div>
+        <div class="pricing-sub">No credit card needed</div>
+        <ul class="pricing-features">
+          <li>
+            <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M3 8l4 4 6-6" stroke="#4caf7d" stroke-width="1.8" stroke-linecap="round"/></svg>
+            3 analyses to start
+          </li>
+          <li>
+            <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M3 8l4 4 6-6" stroke="#4caf7d" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Basic risk score
+          </li>
+          <li>
+            <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M3 8l4 4 6-6" stroke="#4caf7d" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Top 3 risky clauses
+          </li>
+          <li class="dim">
+            <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" stroke-linecap="round"/></svg>
+            Full clause breakdown
+          </li>
+          <li class="dim">
+            <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" stroke-linecap="round"/></svg>
+            Negotiation scripts
+          </li>
+          <li class="dim">
+            <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" stroke-linecap="round"/></svg>
+            Analysis history
+          </li>
+        </ul>
+        <a href="#download" class="pricing-cta outline">Download Free</a>
+      </div>
+
+      <!-- Pro Yearly — featured -->
+      <div class="pricing-card featured">
+        <div class="pricing-badge">BEST VALUE</div>
+        <div class="pricing-name">Pro</div>
+        <div class="pricing-price">$5.99<span>/mo</span></div>
+        <div class="pricing-savings">Save $47.88 vs monthly · billed $71.88/yr</div>
+        <ul class="pricing-features">
+          <li>
+            <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M3 8l4 4 6-6" stroke="#c9a84c" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Unlimited contract analyses
+          </li>
+          <li>
+            <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M3 8l4 4 6-6" stroke="#c9a84c" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Full clause risk breakdowns
+          </li>
+          <li>
+            <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M3 8l4 4 6-6" stroke="#c9a84c" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Market benchmarking on every clause
+          </li>
+          <li>
+            <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M3 8l4 4 6-6" stroke="#c9a84c" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Copy-ready negotiation scripts
+          </li>
+          <li>
+            <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M3 8l4 4 6-6" stroke="#c9a84c" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Key date &amp; deadline tracking
+          </li>
+          <li>
+            <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M3 8l4 4 6-6" stroke="#c9a84c" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Full analysis history
+          </li>
+        </ul>
+        <a href="#download" class="pricing-cta gold">Get Pro Yearly →</a>
+        <p class="pricing-legal">Cancel anytime · No hidden fees</p>
+        <div class="pricing-divider"></div>
+        <div style="font-size:12px; color:var(--tm); margin-bottom:8px;">Or go monthly</div>
+        <div style="font-size:18px; font-weight:800; color:var(--td);">$9.99<span style="font-size:13px; font-weight:500;">/mo</span></div>
+      </div>
+
+      <!-- Pay As You Go -->
+      <div class="pricing-card">
+        <div class="pricing-name">Pay As You Go</div>
+        <div class="pricing-price" style="font-size:28px; margin-bottom:4px;">No commitment</div>
+        <div class="pricing-sub">Buy exactly what you need</div>
+        <div class="payg-cards">
+          <div class="payg-mini">
+            <div class="price">$2.99</div>
+            <div class="name">1 analysis</div>
+          </div>
+          <div class="payg-mini" style="border-color:rgba(201,168,76,0.25); background:rgba(201,168,76,0.04);">
+            <div class="price">$14.99</div>
+            <div class="name">10-pack · 50% off</div>
+          </div>
+        </div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features">
+          <li>
+            <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M3 8l4 4 6-6" stroke="#4caf7d" stroke-width="1.8" stroke-linecap="round"/></svg>
+            All Pro features per analysis
+          </li>
+          <li>
+            <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M3 8l4 4 6-6" stroke="#4caf7d" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Credits never expire
+          </li>
+          <li>
+            <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M3 8l4 4 6-6" stroke="#4caf7d" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Great for occasional use
+          </li>
+        </ul>
+        <a href="#download" class="pricing-cta outline">Get Credits →</a>
+        <p class="pricing-legal">One-time purchase · Processed by Apple</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FAQ ═══════════════════════════════════════════════ -->
+<section class="section" id="faq" style="padding-top:0;">
+  <div class="container">
+    <div class="section-header">
+      <p class="label">FAQ</p>
+      <h2>Questions answered</h2>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          Is my contract data safe?
+          <div class="faq-icon">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M5 2v6" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+        </button>
+        <div class="faq-answer">Your contract is encrypted in transit and analyzed immediately — then discarded. PII (Social Security numbers, emails, phone numbers) is automatically stripped before it ever reaches the AI. Only your analysis results are saved to your account. We never sell or share your data.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          What kinds of contracts can ContractShield analyze?
+          <div class="faq-icon">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M5 2v6" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+        </button>
+        <div class="faq-answer">Employment offers, NDAs, apartment leases, freelance contracts, service agreements, consulting agreements, HOA documents, and more. If it's a legal document with clauses, ContractShield can read it. Works best with contracts under 20,000 characters (Pro) or 6,000 characters (Free).</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          Does this replace a lawyer?
+          <div class="faq-icon">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M5 2v6" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+        </button>
+        <div class="faq-answer">ContractShield is an informational tool, not legal advice. Think of it as a first read — it helps you understand what you're looking at and where to focus your questions. For high-stakes contracts (equity agreements, complex business deals), we always recommend consulting an attorney with the context ContractShield surfaces.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          How accurate is the AI analysis?
+          <div class="faq-icon">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M5 2v6" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+        </button>
+        <div class="faq-answer">ContractShield is powered by Claude, Anthropic's AI model, which excels at legal language comprehension. The analysis is calibrated to be practical and actionable — it will reliably surface the clauses that matter. That said, AI can miss nuance in highly complex or custom legal language, which is why we always label results as informational rather than legal advice.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">
+          Can I cancel my subscription?
+          <div class="faq-icon">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M5 2v6" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+        </button>
+        <div class="faq-answer">Yes, anytime. Open iOS Settings → tap your name → Subscriptions → ContractShield → Cancel Subscription. You keep Pro access until the end of your billing period. No penalty, no friction.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FINAL CTA ══════════════════════════════════════════ -->
+<div class="cta-band">
+  <h2>Stop signing contracts<br>you don't understand.</h2>
+  <p>Download free. 3 analyses on us. No credit card required.</p>
+  <a href="#download" class="btn-primary" style="margin: 0 auto;">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2v12m0 0L6 10m4 4 4-4M3 17h14" stroke="#0b0d12" stroke-width="2" stroke-linecap="round"/></svg>
+    Download for iOS — Free
+  </a>
+  <p class="cta-free-note">Available on the App Store · iPhone &amp; iPad</p>
+</div>
+
+<!-- ══ FOOTER ═════════════════════════════════════════════ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="logo">
+        <svg width="22" height="22" viewBox="0 0 26 26" fill="none">
+          <path d="M13 2L4 6v8c0 5.25 3.8 10.15 9 11.35C18.2 24.15 22 19.25 22 14V6L13 2z" fill="rgba(201,168,76,0.15)" stroke="#c9a84c" stroke-width="1.5"/>
+          <path d="M9.5 13l2.5 2.5 5-5" stroke="#c9a84c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        ContractShield
+      </div>
+      <p>AI-powered legal document review. Know exactly what you're signing.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Product</h4>
+      <ul>
+        <li><a href="#how-it-works">How it works</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Support</h4>
+      <ul>
+        <li><a href="https://contractshield-backend.vercel.app/support">Help Center</a></li>
+        <li><a href="mailto:support@getcontractshield.app">Contact Us</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Legal</h4>
+      <ul>
+        <li><a href="https://contractshield-backend.vercel.app/privacy">Privacy Policy</a></li>
+        <li><a href="https://contractshield-backend.vercel.app/terms">Terms of Service</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2025 ContractShield. Not legal advice. For informational purposes only.</p>
+    <div class="footer-legal">
+      <a href="https://contractshield-backend.vercel.app/privacy">Privacy</a>
+      <a href="https://contractshield-backend.vercel.app/terms">Terms</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Nav scroll effect
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 20);
+  }, { passive: true });
+
+  // FAQ accordion
+  function toggleFaq(btn) {
+    const item = btn.closest('.faq-item');
+    const wasOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item.open').forEach(el => el.classList.remove('open'));
+    if (!wasOpen) item.classList.add('open');
+  }
+
+  // Animate score ring on scroll into view
+  const ring = document.querySelector('.mock-ring-wrap circle:last-child');
+  if (ring) {
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) {
+        ring.style.strokeDashoffset = '82.9';
+        observer.disconnect();
+      }
+    }, { threshold: 0.5 });
+    observer.observe(ring);
+  }
+</script>
+</body>
+</html>
