@@ -188,18 +188,26 @@ app.post('/api/analyze', rateLimit({ windowMs: 60_000, max: 5 }), requireAuth, a
 
     {
       const model = pdfBase64 ? 'claude-sonnet-4-6' : 'claude-haiku-4-5-20251001';
+      const maxTokens = pdfBase64 ? 4000 : 2000;
       const reqOpts = pdfBase64 ? { headers: { 'anthropic-beta': 'pdfs-2024-09-25' } } : {};
       const message = await anthropic.messages.create(
-        { model, max_tokens: 2000, system, messages: [{ role: 'user' as const, content }] },
+        { model, max_tokens: maxTokens, system, messages: [{ role: 'user' as const, content }] },
         reqOpts,
       );
       const block = message.content[0] as any;
-      if (!block || block.type !== 'text') return res.status(500).json({ error: 'Analysis failed. Please try again.' });
+      if (!block || block.type !== 'text') {
+        console.error('Unexpected content block:', JSON.stringify(message.content).slice(0, 300));
+        return res.status(500).json({ error: 'Analysis failed. Please try again.' });
+      }
       raw = block.text;
+      console.log('Anthropic stop_reason:', message.stop_reason, 'raw length:', raw.length);
     }
 
     const result = parseJSON(raw);
-    if (!result) return res.status(500).json({ error: 'Analysis failed. Please try again.' });
+    if (!result) {
+      console.error('parseJSON failed, raw preview:', raw?.slice(0, 500));
+      return res.status(500).json({ error: 'Analysis failed — could not parse response. Please try again.' });
+    }
 
     // Deduct usage — upsert so a missing profile row doesn't silently skip tracking
     if (!isPro) {
