@@ -9,7 +9,7 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Haptics from 'expo-haptics';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useStore } from '../services/store';
-import { getPortalUrl, getHistory, deleteAccount, getUsage, setAuthToken } from '../services/api';
+import { getHistory, deleteAccount, getUsage, setAuthToken } from '../services/api';
 import { signOut } from '../services/auth';
 import { C } from '../theme';
 
@@ -47,7 +47,6 @@ export default function AccountScreen() {
 
   const [history, setHistory]           = useState<{ id: string; result: any; created_at: string }[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
-  const [loadingPortal, setLoadingPortal]   = useState(false);
   const [loadingDelete, setLoadingDelete]   = useState(false);
 
   const email       = user?.email ?? '';
@@ -78,26 +77,7 @@ export default function AccountScreen() {
 
   const handleManageSubscription = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setLoadingPortal(true);
-    try {
-      const { url } = await getPortalUrl();
-      await WebBrowser.openBrowserAsync(url, {
-        dismissButtonStyle: 'done',
-        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
-      });
-      const u = await getUsage();
-      setIsPro(u.isPro);
-      setUsage(u.used, u.limit, u.credits);
-    } catch (e: any) {
-      const msg = e?.response?.data?.error || e.message;
-      if (msg?.includes('No active subscription')) {
-        Alert.alert('No subscription found', 'Complete a checkout first, then manage it here.');
-      } else {
-        Alert.alert('Error', msg);
-      }
-    } finally {
-      setLoadingPortal(false);
-    }
+    Linking.openURL('https://apps.apple.com/account/subscriptions');
   };
 
   const handleSignOut = async () => {
@@ -190,14 +170,10 @@ export default function AccountScreen() {
 
           {isPro ? (
             <TouchableOpacity
-              style={[s.outlineBtn, loadingPortal && s.btnDisabled]}
+              style={s.outlineBtn}
               onPress={handleManageSubscription}
-              disabled={loadingPortal}
             >
-              {loadingPortal
-                ? <ActivityIndicator color={C.gold} size="small"/>
-                : <Text style={s.outlineBtnText}>Manage Subscription →</Text>
-              }
+              <Text style={s.outlineBtnText}>Manage Subscription →</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={s.goldBtn} onPress={() => navigation.navigate('Paywall')}>

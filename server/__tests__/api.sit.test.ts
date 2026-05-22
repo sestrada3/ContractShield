@@ -1,7 +1,7 @@
 /**
  * SIT (System Integration Tests) — tests the HTTP API layer with all external
- * services mocked. Verifies auth boundaries, input validation, Stripe webhook
- * signature verification, and static response pages.
+ * services mocked. Verifies auth boundaries, input validation, RevenueCat
+ * webhook authorization, and endpoint behavior.
  */
 
 // ─── Disable rate limiting so tests don't interfere with each other ──────────
@@ -11,8 +11,8 @@ jest.mock('express-rate-limit', () =>
 
 // ─── Mock state shared between factory closures and test assertions ───────────
 const mockDb = {
-  user: null as any,
-  profile: null as { is_pro: boolean; free_analyses_used: number; stripe_customer_id?: string } | null,
+  user:    null as any,
+  profile: null as { is_pro: boolean; free_analyses_used: number; credits?: number } | null,
 };
 
 // ─── Supabase mock ────────────────────────────────────────────────────────────
@@ -76,69 +76,64 @@ jest.mock('@anthropic-ai/sdk', () => ({
   })),
 }));
 
-// ─── Stripe mock ──────────────────────────────────────────────────────────────
-let mockConstructEvent: jest.Mock;
-jest.mock('stripe', () => {
-  mockConstructEvent = jest.fn().mockImplementation(() => {
-    throw new Error('No signatures found matching the expected signature for payload');
-  });
-  const MockStripe = jest.fn().mockImplementation(() => ({
-    webhooks: { constructEvent: mockConstructEvent },
-    checkout: { sessions: { create: jest.fn().mockResolvedValue({ url: 'https://checkout.stripe.com/test' }) } },
-    billingPortal: { sessions: { create: jest.fn().mockResolvedValue({ url: 'https://billing.stripe.com/test' }) } },
-    subscriptions: { list: jest.fn().mockResolvedValue({ data: [] }), cancel: jest.fn().mockResolvedValue({}) },
-  }));
-  return MockStripe;
-});
+// ─── RevenueCat REST API mock (used by /api/revenuecat/sync) ─────────────────
+const mockRcFetch = jest.fn();
+global.fetch = mockRcFetch;
 
 import request from 'supertest';
 import app from '../index';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const AUTH_HEADER = { Authorization: 'Bearer valid-test-token' };
+const RC_WEBHOOK_SECRET = 'test-webhook-secret';
+
+process.env.REVENUECAT_WEBHOOK_SECRET = RC_WEBHOOK_SECRET;
+process.env.REVENUECAT_SECRET_KEY     = 'sk_test';
 
 function asAuthenticatedFreeUser() {
-  mockDb.user = { id: 'user-123', email: 'test@test.com' };
-  mockDb.profile = { is_pro: false, free_analyses_used: 0 };
+  mockDb.user    = { id: 'user-123', email: 'test@test.com' };
+  mockDb.profile = { is_pro: false, free_analyses_used: 0, credits: 0 };
 }
 
 function asAuthenticatedProUser() {
-  mockDb.user = { id: 'user-123', email: 'test@test.com' };
-  mockDb.profile = { is_pro: true, free_analyses_used: 0, stripe_customer_id: 'cus_test' };
+  mockDb.user    = { id: 'user-123', email: 'test@test.com' };
+  mockDb.profile = { is_pro: true, free_analyses_used: 0, credits: 0 };
 }
 
 function asUnauthenticated() {
-  mockDb.user = null;
+  mockDb.user    = null;
   mockDb.profile = null;
 }
 
 beforeEach(() => {
   asUnauthenticated();
   jest.clearAllMocks();
-  // Re-apply default stripe mock behaviour after clearAllMocks
-  if (mockConstructEvent) {
-    mockConstructEvent.mockImplementation(() => {
-      throw new Error('Invalid signature');
-    });
-  }
+  // Default RevenueCat fetch mock — returns non-pro subscriber
+  mockRcFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      subscriber: {
+        entitlements: {},
+        non_subscriptions: {},
+      },
+    }),
+  });
 });
 
 // ─── Auth boundary: every protected route returns 401 without a token ─────────
 describe('Authentication boundary (SIT)', () => {
   const protectedRoutes = [
-    { method: 'post',   path: '/api/analyze',          body: { text: 'hello' } },
-    { method: 'get',    path: '/api/usage',             body: {} },
-    { method: 'post',   path: '/api/stripe/checkout',  body: { priceId: 'price_x' } },
-    { method: 'post',   path: '/api/stripe/portal',    body: {} },
-    { method: 'get',    path: '/api/history',           body: {} },
-    { method: 'delete', path: '/api/account',           body: {} },
+    { method: 'post',   path: '/api/analyze',           body: { text: 'hello' } },
+    { method: 'get',    path: '/api/usage',              body: {} },
+    { method: 'post',   path: '/api/revenuecat/sync',   body: {} },
+    { method: 'get',    path: '/api/history',            body: {} },
+    { method: 'delete', path: '/api/account',            body: {} },
   ];
 
   test.each(protectedRoutes)(
     '$method $path → 401 without Authorization header',
     async ({ method, path, body }) => {
-      const req = (request(app) as any)[method](path).send(body);
-      const res = await req;
+      const res = await (request(app) as any)[method](path).send(body);
       expect(res.status).toBe(401);
     },
   );
@@ -177,7 +172,7 @@ describe('POST /api/analyze — input validation (SIT)', () => {
   });
 
   it('returns 402 when free user has used all 3 analyses', async () => {
-    mockDb.profile = { is_pro: false, free_analyses_used: 3 };
+    mockDb.profile = { is_pro: false, free_analyses_used: 3, credits: 0 };
     const res = await request(app).post('/api/analyze').set(AUTH_HEADER).send({ text: 'some contract' });
     expect(res.status).toBe(402);
     expect(res.body.upgradeRequired).toBe(true);
@@ -192,32 +187,65 @@ describe('POST /api/analyze — input validation (SIT)', () => {
   });
 });
 
-// ─── Input validation: /api/stripe/checkout ──────────────────────────────────
-describe('POST /api/stripe/checkout — input validation (SIT)', () => {
-  beforeEach(asAuthenticatedFreeUser);
-
-  it('returns 400 for missing priceId', async () => {
-    const res = await request(app).post('/api/stripe/checkout').set(AUTH_HEADER).send({});
-    expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/Invalid plan/i);
+// ─── RevenueCat webhook ───────────────────────────────────────────────────────
+describe('POST /api/revenuecat/webhook (SIT)', () => {
+  it('returns 401 when Authorization header is missing', async () => {
+    const res = await request(app).post('/api/revenuecat/webhook').send({
+      event: { type: 'INITIAL_PURCHASE', app_user_id: 'u1', entitlement_ids: ['pro'] },
+    });
+    expect(res.status).toBe(401);
   });
 
-  it('returns 400 for unknown priceId', async () => {
-    const res = await request(app).post('/api/stripe/checkout').set(AUTH_HEADER).send({ priceId: 'price_hacker_attempt' });
+  it('returns 401 when Authorization header is wrong', async () => {
+    const res = await request(app)
+      .post('/api/revenuecat/webhook')
+      .set('Authorization', 'Bearer wrong-secret')
+      .send({ event: { type: 'INITIAL_PURCHASE', app_user_id: 'u1', entitlement_ids: ['pro'] } });
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 200 with correct secret', async () => {
+    const res = await request(app)
+      .post('/api/revenuecat/webhook')
+      .set('Authorization', `Bearer ${RC_WEBHOOK_SECRET}`)
+      .send({ event: { type: 'INITIAL_PURCHASE', app_user_id: 'u1', entitlement_ids: ['pro'] } });
+    expect(res.status).toBe(200);
+    expect(res.body.received).toBe(true);
+  });
+
+  it('returns 400 when app_user_id is missing', async () => {
+    const res = await request(app)
+      .post('/api/revenuecat/webhook')
+      .set('Authorization', `Bearer ${RC_WEBHOOK_SECRET}`)
+      .send({ event: { type: 'INITIAL_PURCHASE' } });
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/Invalid plan/i);
   });
 });
 
-// ─── Stripe webhook ───────────────────────────────────────────────────────────
-describe('POST /api/stripe/webhook (SIT)', () => {
-  it('returns 400 when stripe-signature header is invalid', async () => {
-    const res = await request(app)
-      .post('/api/stripe/webhook')
-      .set('stripe-signature', 'bad-sig')
-      .set('Content-Type', 'application/json')
-      .send(Buffer.from('{}'));
-    expect(res.status).toBe(400);
+// ─── RevenueCat sync ──────────────────────────────────────────────────────────
+describe('POST /api/revenuecat/sync (SIT)', () => {
+  beforeEach(asAuthenticatedFreeUser);
+
+  it('returns isPro: false when no active entitlement', async () => {
+    const res = await request(app).post('/api/revenuecat/sync').set(AUTH_HEADER);
+    expect(res.status).toBe(200);
+    expect(res.body.isPro).toBe(false);
+  });
+
+  it('returns isPro: true when pro entitlement is active', async () => {
+    const futureDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    mockRcFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        subscriber: {
+          entitlements: { pro: { expires_date: futureDate } },
+          non_subscriptions: {},
+        },
+      }),
+    });
+    const res = await request(app).post('/api/revenuecat/sync').set(AUTH_HEADER);
+    expect(res.status).toBe(200);
+    expect(res.body.isPro).toBe(true);
   });
 });
 
@@ -240,22 +268,5 @@ describe('GET /api/history (SIT)', () => {
     const res = await request(app).get('/api/history').set(AUTH_HEADER);
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
-  });
-});
-
-// ─── Static redirect pages ────────────────────────────────────────────────────
-describe('Payment redirect pages (SIT)', () => {
-  it('GET /payment-success returns 200 HTML', async () => {
-    const res = await request(app).get('/payment-success');
-    expect(res.status).toBe(200);
-    expect(res.headers['content-type']).toMatch(/html/);
-    expect(res.text).toContain("You're now Pro");
-  });
-
-  it('GET /payment-cancel returns 200 HTML', async () => {
-    const res = await request(app).get('/payment-cancel');
-    expect(res.status).toBe(200);
-    expect(res.headers['content-type']).toMatch(/html/);
-    expect(res.text).toContain('No problem');
   });
 });

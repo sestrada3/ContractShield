@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cp -r public dist",
+  "buildCommand": "rm -rf dist && cp -r public dist",
   "outputDirectory": "dist",
   "framework": null,
   "rewrites": [

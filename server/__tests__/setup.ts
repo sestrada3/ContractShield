@@ -1,11 +1,7 @@
 process.env.VERCEL = '1';
-process.env.ANTHROPIC_API_KEY = 'test-anthropic-key';
-process.env.STRIPE_SECRET_KEY = 'sk_test_fake';
-process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test_fake';
-process.env.SUPABASE_URL = 'https://test.supabase.co';
-process.env.SUPABASE_SERVICE_KEY = 'test-service-key';
-process.env.PORT = '3001';
-process.env.STRIPE_PRICE_MONTHLY  = 'price_monthly_test';
-process.env.STRIPE_PRICE_YEARLY   = 'price_yearly_test';
-process.env.STRIPE_PRICE_CREDIT_1  = 'price_credit1_test';
-process.env.STRIPE_PRICE_CREDIT_10 = 'price_credit10_test';
+process.env.ANTHROPIC_API_KEY        = 'test-anthropic-key';
+process.env.SUPABASE_URL             = 'https://test.supabase.co';
+process.env.SUPABASE_SERVICE_KEY     = 'test-service-key';
+process.env.PORT                     = '3001';
+process.env.REVENUECAT_SECRET_KEY    = 'sk_test_fake';
+process.env.REVENUECAT_WEBHOOK_SECRET = 'whsec_test_fake';

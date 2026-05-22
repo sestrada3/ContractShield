@@ -7,9 +7,7 @@ import {
   setAuthToken,
   analyzeDocument,
   getUsage,
-  createCheckoutSession,
-  createOneTimeCheckout,
-  getPortalUrl,
+  syncPurchase,
   getHistory,
   deleteAccount,
 } from '../../services/api';
@@ -139,43 +137,20 @@ describe('getUsage', () => {
   });
 });
 
-// ── createCheckoutSession ─────────────────────────────────────────────────────
-describe('createCheckoutSession', () => {
-  it('POSTs to /api/stripe/checkout with priceId', async () => {
-    const sessionData = { url: 'https://checkout.stripe.com/session_abc' };
-    mockOk(sessionData);
-    const result = await createCheckoutSession('price_monthly_123');
-    const [, options] = mockFetch.mock.calls[0];
-    const body = JSON.parse(options.body);
-    expect(body.priceId).toBe('price_monthly_123');
-    expect(result).toEqual(sessionData);
-  });
-});
-
-// ── createOneTimeCheckout ─────────────────────────────────────────────────────
-describe('createOneTimeCheckout', () => {
-  it('POSTs to /api/stripe/checkout-onetime with priceId', async () => {
-    const sessionData = { url: 'https://checkout.stripe.com/onetime_abc' };
-    mockOk(sessionData);
-    const result = await createOneTimeCheckout('price_credit_1');
-    const [, options] = mockFetch.mock.calls[0];
-    const body = JSON.parse(options.body);
-    expect(body.priceId).toBe('price_credit_1');
-    expect(result).toEqual(sessionData);
-  });
-});
-
-// ── getPortalUrl ──────────────────────────────────────────────────────────────
-describe('getPortalUrl', () => {
-  it('POSTs to /api/stripe/portal and returns url', async () => {
-    const portalData = { url: 'https://billing.stripe.com/portal_abc' };
-    mockOk(portalData);
-    const result = await getPortalUrl();
+// ── syncPurchase ──────────────────────────────────────────────────────────────
+describe('syncPurchase', () => {
+  it('POSTs to /api/revenuecat/sync', async () => {
+    mockOk({});
+    await syncPurchase();
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/stripe/portal'),
+      expect.stringContaining('/api/revenuecat/sync'),
       expect.objectContaining({ method: 'POST' }),
     );
-    expect(result).toEqual(portalData);
+  });
+
+  it('throws on non-ok response', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false });
+    await expect(syncPurchase()).rejects.toThrow();
   });
 });
 

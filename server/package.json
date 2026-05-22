@@ -11,14 +11,15 @@
     "test:unit": "jest --testPathPattern=helpers",
     "test:sit": "jest --testPathPattern=sit"
   },
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.97.0",
     "@supabase/supabase-js": "^2.45.0",
     "cors": "^2.8.5",
     "express": "^4.19.2",
-    "express-rate-limit": "^8.5.2",
-    "stripe": "^16.0.0"
+    "express-rate-limit": "^8.5.2"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

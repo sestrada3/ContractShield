@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import Purchases from 'react-native-purchases';
 import HomeScreen       from './src/screens/HomeScreen';
 import ResultsScreen    from './src/screens/ResultsScreen';
 import PaywallScreen    from './src/screens/PaywallScreen';
@@ -37,6 +38,8 @@ export default function App() {
   const [onboardingDone, setOnboardingDone] = useState(false);
 
   useEffect(() => {
+    Purchases.configure({ apiKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY! });
+
     const init = async () => {
       const [session, seen] = await Promise.all([
         getSession().catch(() => null),
@@ -46,6 +49,7 @@ export default function App() {
       if (session) {
         setUser(session.user);
         setAuthToken(session.access_token);
+        await Purchases.logIn(session.user.id).catch(() => {});
         syncUsage(); // fire-and-forget — don't block app startup on a network call
       }
       setReady(true);
@@ -56,10 +60,12 @@ export default function App() {
       if (session) {
         setUser(session.user);
         setAuthToken(session.access_token);
+        Purchases.logIn(session.user.id).catch(() => {});
         syncUsage();
       } else {
         setUser(null);
         setAuthToken(null);
+        Purchases.logOut().catch(() => {});
       }
     });
     return () => subscription.unsubscribe();

@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import Anthropic from '@anthropic-ai/sdk';
-import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
 const app  = express();
@@ -20,66 +19,6 @@ app.use(cors({
 
 // ── Rate limiting ────────────────────────────────────────────────────────────
 app.use(rateLimit({ windowMs: 60_000, max: 30, standardHeaders: true, legacyHeaders: false }));
-
-// ── Stripe webhook — must receive raw bytes BEFORE express.json() ────────────
-app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  const sig = req.headers['stripe-signature'] as string;
-  let event: Stripe.Event;
-  try {
-    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
-  } catch (err: any) {
-    console.error('Webhook sig error:', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
-
-  try {
-    switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object as Stripe.Checkout.Session;
-        const userId  = session.metadata?.userId;
-        if (!userId) break;
-
-        if (session.mode === 'subscription') {
-          // Also persist the Stripe customer ID so the billing portal can look it up
-          await supabase.from('profiles').update({
-            is_pro: true,
-            stripe_customer_id: session.customer,
-          }).eq('id', userId);
-        }
-
-        if (session.mode === 'payment') {
-          const paid = session.amount_total || 0;
-          const creditsToAdd = paid === 299 ? 1 : paid === 1499 ? 10 : 0;
-          if (creditsToAdd > 0) {
-            const { data: p } = await supabase.from('profiles').select('credits').eq('id', userId).single();
-            await supabase.from('profiles').update({ credits: (p?.credits || 0) + creditsToAdd }).eq('id', userId);
-          }
-        }
-        break;
-      }
-      case 'customer.subscription.deleted': {
-        // Subscription objects carry metadata.userId set at checkout time
-        const sub    = event.data.object as any;
-        const userId = sub.metadata?.userId;
-        if (userId) await supabase.from('profiles').update({ is_pro: false }).eq('id', userId);
-        break;
-      }
-      case 'invoice.payment_failed': {
-        // Invoice objects don't carry metadata.userId — look up the user by stripe_customer_id
-        const invoice    = event.data.object as any;
-        const customerId = invoice.customer as string;
-        if (customerId) {
-          await supabase.from('profiles').update({ is_pro: false }).eq('stripe_customer_id', customerId);
-        }
-        break;
-      }
-    }
-  } catch (err: any) {
-    console.error('Webhook handler error:', err.message);
-  }
-
-  res.json({ received: true });
-});
 
 app.use(express.json({ limit: '10mb' }));
 
@@ -110,22 +49,11 @@ app.get('/api/diag/pdf', async (_req, res) => {
 
 // ── Clients ──────────────────────────────────────────────────────────────────
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
-const stripe    = new Stripe(process.env.STRIPE_SECRET_KEY!);
 const supabase  = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!);
 
 const FREE_LIMIT = 3;
 
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
-
-const VALID_SUB_PRICES = new Set([
-  process.env.STRIPE_PRICE_MONTHLY  || 'price_1TY8noPwwT0D6amwKPNvzhTO',
-  process.env.STRIPE_PRICE_YEARLY   || 'price_1TY8npPwwT0D6amwuwTPZRm4',
-]);
-
-const VALID_ONETIME_PRICES = new Set([
-  process.env.STRIPE_PRICE_CREDIT_1  || 'price_1TYuudPwwT0D6amwxOSm2OlZ',
-  process.env.STRIPE_PRICE_CREDIT_10 || 'price_1TYuvIPwwT0D6amwWjbCGLss',
-]);
 
 // ── Auth middleware ──────────────────────────────────────────────────────────
 const requireAuth = async (req: any, res: any, next: any) => {
@@ -257,64 +185,77 @@ app.get('/api/history', requireAuth, async (req: any, res) => {
   res.json(data || []);
 });
 
-// ── Stripe: subscription checkout ────────────────────────────────────────────
-app.post('/api/stripe/checkout', requireAuth, async (req: any, res) => {
-  const { priceId } = req.body;
-  if (!priceId || typeof priceId !== 'string' || !VALID_SUB_PRICES.has(priceId))
-    return res.status(400).json({ error: 'Invalid plan' });
-  try {
-    const session = await stripe.checkout.sessions.create({
-      mode: 'subscription',
-      payment_method_types: ['card'],
-      line_items: [{ price: priceId, quantity: 1 }],
-      subscription_data: { trial_period_days: 7 },
-      success_url: 'https://contractshield-backend.vercel.app/payment-success',
-      cancel_url:  'https://contractshield-backend.vercel.app/payment-cancel',
-      metadata:    { userId: req.user.id },
-    });
-    res.json({ url: session.url });
-  } catch (e: any) {
-    res.status(500).json({ error: 'Could not create checkout session.' });
+// ── RevenueCat: webhook ──────────────────────────────────────────────────────
+// Receives subscription lifecycle events from RevenueCat.
+// Secured via a shared secret in the Authorization header.
+app.post('/api/revenuecat/webhook', async (req, res) => {
+  const auth = req.headers.authorization;
+  if (!auth || auth !== `Bearer ${process.env.REVENUECAT_WEBHOOK_SECRET}`) {
+    return res.status(401).json({ error: 'Unauthorized' });
   }
+
+  const event     = req.body?.event;
+  const appUserId = event?.app_user_id; // This is the Supabase user ID
+
+  if (!appUserId) return res.status(400).json({ error: 'Missing app_user_id' });
+
+  try {
+    switch (event.type) {
+      case 'INITIAL_PURCHASE':
+      case 'RENEWAL': {
+        const entitlements: string[] = event.entitlement_ids || [];
+        if (entitlements.includes('pro')) {
+          await supabase.from('profiles').update({ is_pro: true }).eq('id', appUserId);
+        } else {
+          // Consumable purchase — add credits based on product ID
+          const creditsToAdd = event.product_id === 'com.contractshield.credits.10' ? 10 : 1;
+          const { data: p } = await supabase.from('profiles').select('credits').eq('id', appUserId).single();
+          await supabase.from('profiles').update({ credits: (p?.credits || 0) + creditsToAdd }).eq('id', appUserId);
+        }
+        break;
+      }
+      case 'NON_SUBSCRIPTION_PURCHASE': {
+        const creditsToAdd = event.product_id === 'com.contractshield.credits.10' ? 10 : 1;
+        const { data: p } = await supabase.from('profiles').select('credits').eq('id', appUserId).single();
+        await supabase.from('profiles').update({ credits: (p?.credits || 0) + creditsToAdd }).eq('id', appUserId);
+        break;
+      }
+      case 'EXPIRATION':
+      case 'BILLING_ISSUE':
+        await supabase.from('profiles').update({ is_pro: false }).eq('id', appUserId);
+        break;
+      // CANCELLATION: subscription still active until EXPIRATION — no action needed
+    }
+  } catch (e: any) {
+    console.error('RevenueCat webhook error:', e.message);
+  }
+
+  res.json({ received: true });
 });
 
-// ── Stripe: one-time checkout ────────────────────────────────────────────────
-app.post('/api/stripe/checkout-onetime', requireAuth, async (req: any, res) => {
-  const { priceId } = req.body;
-  if (!priceId || typeof priceId !== 'string' || !VALID_ONETIME_PRICES.has(priceId))
-    return res.status(400).json({ error: 'Invalid plan' });
+// ── RevenueCat: sync after purchase ─────────────────────────────────────────
+// Called by the client immediately after a purchase to update is_pro without
+// waiting for the webhook. Credits are added by the webhook to avoid double-counting.
+app.post('/api/revenuecat/sync', requireAuth, async (req: any, res) => {
+  const userId = req.user.id;
   try {
-    const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
-      payment_method_types: ['card'],
-      line_items: [{ price: priceId, quantity: 1 }],
-      success_url: 'https://contractshield-backend.vercel.app/payment-success',
-      cancel_url:  'https://contractshield-backend.vercel.app/payment-cancel',
-      metadata:    { userId: req.user.id },
+    const rcRes = await fetch(`https://api.revenuecat.com/v1/subscribers/${userId}`, {
+      headers: { Authorization: `Bearer ${process.env.REVENUECAT_SECRET_KEY}` },
     });
-    res.json({ url: session.url });
-  } catch (e: any) {
-    res.status(500).json({ error: 'Could not create one-time checkout.' });
-  }
-});
+    if (!rcRes.ok) throw new Error(`RevenueCat API error: ${rcRes.status}`);
 
-// ── Stripe: billing portal ───────────────────────────────────────────────────
-app.post('/api/stripe/portal', requireAuth, async (req: any, res) => {
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('stripe_customer_id')
-    .eq('id', req.user.id)
-    .single();
-  if (!profile?.stripe_customer_id)
-    return res.status(400).json({ error: 'No active subscription found' });
-  try {
-    const session = await stripe.billingPortal.sessions.create({
-      customer:   profile.stripe_customer_id as string,
-      return_url: 'https://contractshield-backend.vercel.app/payment-cancel',
-    });
-    res.json({ url: session.url });
+    const data: any     = await rcRes.json();
+    const subscriber    = data.subscriber;
+    const proEntitlement = subscriber?.entitlements?.pro;
+    const isPro = proEntitlement
+      ? new Date(proEntitlement.expires_date) > new Date()
+      : false;
+
+    await supabase.from('profiles').update({ is_pro: isPro }).eq('id', userId);
+    res.json({ isPro });
   } catch (e: any) {
-    res.status(500).json({ error: 'Could not open billing portal.' });
+    console.error('RevenueCat sync error:', e.message);
+    res.status(500).json({ error: 'Could not sync subscription status.' });
   }
 });
 
@@ -330,7 +271,7 @@ const requireAdmin = (req: any, res: any, next: any) => {
 app.get('/api/admin/users', requireAdmin, async (_req, res) => {
   try {
     const { data: authUsers } = await supabase.auth.admin.listUsers({ perPage: 1000 });
-    const { data: profiles }  = await supabase.from('profiles').select('id, is_pro, free_analyses_used, credits, stripe_customer_id, created_at');
+    const { data: profiles }  = await supabase.from('profiles').select('id, is_pro, free_analyses_used, credits, created_at');
     const { data: analyses }  = await supabase.from('analyses').select('user_id');
 
     const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p]));
@@ -348,7 +289,6 @@ app.get('/api/admin/users', requireAdmin, async (_req, res) => {
       credits:         profileMap[u.id]?.credits || 0,
       free_analyses_used: profileMap[u.id]?.free_analyses_used || 0,
       total_analyses:  analysisCounts[u.id] || 0,
-      stripe_customer_id: profileMap[u.id]?.stripe_customer_id || null,
     }));
 
     res.json({ users, total: users.length });
@@ -388,11 +328,6 @@ app.post('/api/admin/users/:id/credits', requireAdmin, async (req, res) => {
 app.delete('/api/admin/users/:id', requireAdmin, async (req, res) => {
   const { id } = req.params;
   try {
-    const { data: profile } = await supabase.from('profiles').select('stripe_customer_id').eq('id', id).single();
-    if (profile?.stripe_customer_id) {
-      const subs = await stripe.subscriptions.list({ customer: profile.stripe_customer_id as string, status: 'active' });
-      await Promise.all(subs.data.map(sub => stripe.subscriptions.cancel(sub.id)));
-    }
     await supabase.from('analyses').delete().eq('user_id', id);
     await supabase.from('profiles').delete().eq('id', id);
     await supabase.auth.admin.deleteUser(id);
@@ -403,14 +338,11 @@ app.delete('/api/admin/users/:id', requireAdmin, async (req, res) => {
 });
 
 // ── Delete account ───────────────────────────────────────────────────────────
+// Apple IAP subscriptions are managed by Apple — they cannot be cancelled
+// server-side. The RevenueCat webhook will fire EXPIRATION when they lapse.
 app.delete('/api/account', requireAuth, async (req: any, res) => {
   const userId = req.user.id;
   try {
-    const { data: profile } = await supabase.from('profiles').select('stripe_customer_id').eq('id', userId).single();
-    if (profile?.stripe_customer_id) {
-      const subs = await stripe.subscriptions.list({ customer: profile.stripe_customer_id as string, status: 'active' });
-      await Promise.all(subs.data.map(sub => stripe.subscriptions.cancel(sub.id)));
-    }
     await supabase.from('analyses').delete().eq('user_id', userId);
     await supabase.from('profiles').delete().eq('id', userId);
     const { error } = await supabase.auth.admin.deleteUser(userId);
@@ -419,15 +351,6 @@ app.delete('/api/account', requireAuth, async (req: any, res) => {
   } catch (e: any) {
     res.status(500).json({ error: 'Could not delete account. Please contact support.' });
   }
-});
-
-// ── Payment redirect pages ───────────────────────────────────────────────────
-app.get('/payment-success', (_req, res) => {
-  res.send(`<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Payment Successful</title><style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0b0d12;font-family:-apple-system,sans-serif;color:#fff}div{text-align:center;padding:32px}.icon{font-size:64px;margin-bottom:16px}.title{font-size:24px;font-weight:700;margin-bottom:8px;color:#4caf7d}.sub{font-size:14px;color:rgba(255,255,255,0.5)}</style></head><body><div><div class="icon">✅</div><div class="title">You're now Pro!</div><div class="sub">Switch back to the ContractShield app — your access is ready.</div></div></body></html>`);
-});
-
-app.get('/payment-cancel', (_req, res) => {
-  res.send(`<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cancelled</title><style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0b0d12;font-family:-apple-system,sans-serif;color:#fff}div{text-align:center;padding:32px}.icon{font-size:64px;margin-bottom:16px}.title{font-size:24px;font-weight:700;margin-bottom:8px}.sub{font-size:14px;color:rgba(255,255,255,0.5)}</style></head><body><div><div class="icon">↩</div><div class="title">No problem!</div><div class="sub">Close this window to return to ContractShield.</div></div></body></html>`);
 });
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

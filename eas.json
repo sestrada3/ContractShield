@@ -10,7 +10,8 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://contractshield-backend.vercel.app",
         "EXPO_PUBLIC_SUPABASE_URL": "https://kbyomufqunenlxzihltn.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtieW9tdWZxdW5lbmx4emlobHRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTE4NDgsImV4cCI6MjA5NDM2Nzg0OH0.-L7EzIq4MPRpWNwidzWECGoAudesDxDi56jl2TJ3VOM"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtieW9tdWZxdW5lbmx4emlobHRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTE4NDgsImV4cCI6MjA5NDM2Nzg0OH0.-L7EzIq4MPRpWNwidzWECGoAudesDxDi56jl2TJ3VOM",
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_PhnJEocRmkPlxIEuESOLIPrMHVy"
       }
     },
     "preview": {
@@ -18,7 +19,8 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://contractshield-backend.vercel.app",
         "EXPO_PUBLIC_SUPABASE_URL": "https://kbyomufqunenlxzihltn.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtieW9tdWZxdW5lbmx4emlobHRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTE4NDgsImV4cCI6MjA5NDM2Nzg0OH0.-L7EzIq4MPRpWNwidzWECGoAudesDxDi56jl2TJ3VOM"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtieW9tdWZxdW5lbmx4emlobHRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTE4NDgsImV4cCI6MjA5NDM2Nzg0OH0.-L7EzIq4MPRpWNwidzWECGoAudesDxDi56jl2TJ3VOM",
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_PhnJEocRmkPlxIEuESOLIPrMHVy"
       }
     },
     "production": {
@@ -26,7 +28,8 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://contractshield-backend.vercel.app",
         "EXPO_PUBLIC_SUPABASE_URL": "https://kbyomufqunenlxzihltn.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtieW9tdWZxdW5lbmx4emlobHRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTE4NDgsImV4cCI6MjA5NDM2Nzg0OH0.-L7EzIq4MPRpWNwidzWECGoAudesDxDi56jl2TJ3VOM"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtieW9tdWZxdW5lbmx4emlobHRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3OTE4NDgsImV4cCI6MjA5NDM2Nzg0OH0.-L7EzIq4MPRpWNwidzWECGoAudesDxDi56jl2TJ3VOM",
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_PhnJEocRmkPlxIEuESOLIPrMHVy"
       }
     }
   },

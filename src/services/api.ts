@@ -52,36 +52,13 @@ export async function getHistory(): Promise<{ id: string; result: any; created_a
   return res.json();
 }
 
-// ── Stripe: subscription checkout ────────────────────────────────────────────
-export async function createCheckoutSession(priceId: string): Promise<{ url: string }> {
-  const res = await fetch(`${BASE_URL}/api/stripe/checkout`, {
-    method: 'POST',
-    headers: await authHeaders(),
-    body: JSON.stringify({ priceId }),
-  });
-  if (!res.ok) throw new Error('Failed to create checkout session');
-  return res.json();
-}
-
-// ── Stripe: one-time checkout ────────────────────────────────────────────────
-export async function createOneTimeCheckout(priceId: string): Promise<{ url: string }> {
-  const res = await fetch(`${BASE_URL}/api/stripe/checkout-onetime`, {
-    method: 'POST',
-    headers: await authHeaders(),
-    body: JSON.stringify({ priceId }),
-  });
-  if (!res.ok) throw new Error('Failed to create one-time checkout');
-  return res.json();
-}
-
-// ── Stripe: billing portal ───────────────────────────────────────────────────
-export async function getPortalUrl(): Promise<{ url: string }> {
-  const res = await fetch(`${BASE_URL}/api/stripe/portal`, {
+// ── RevenueCat: sync entitlement after purchase ──────────────────────────────
+export async function syncPurchase(): Promise<void> {
+  const res = await fetch(`${BASE_URL}/api/revenuecat/sync`, {
     method: 'POST',
     headers: await authHeaders(),
   });
-  if (!res.ok) throw new Error('Could not open billing portal');
-  return res.json();
+  if (!res.ok) throw new Error('Could not sync purchase');
 }
 
 // ── Delete account ───────────────────────────────────────────────────────────
