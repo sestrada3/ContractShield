@@ -79,6 +79,7 @@ export default function PaywallScreen() {
         Purchases.getOfferings(),
         Purchases.getProducts([PRODUCT_CREDIT_1, PRODUCT_CREDIT_10]),
       ]);
+      Alert.alert('DIAG', `offerings:${o.status} products:${products.status} count:${products.status === 'fulfilled' ? products.value.length : 'ERR'}`);
       if (o.status === 'fulfilled') setOfferings(o.value);
       if (products.status === 'fulfilled') setConsumables(products.value);
     } finally {
@@ -115,6 +116,7 @@ export default function PaywallScreen() {
   };
 
   const handleOneTime = async (productId: string) => {
+    Alert.alert('DIAG', `handleOneTime called. consumables.length=${consumables.length} productId=${productId}`);
     const product = consumables.find(p => p.productIdentifier === productId);
     if (!product) {
       Alert.alert('Not available', 'Products could not be loaded. Please check your connection and try again.');
