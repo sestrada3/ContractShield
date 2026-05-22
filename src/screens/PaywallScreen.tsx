@@ -79,10 +79,11 @@ export default function PaywallScreen() {
         Purchases.getOfferings(),
         Purchases.getProducts([PRODUCT_CREDIT_1, PRODUCT_CREDIT_10]),
       ]);
+      console.log('[Paywall] consumable products fetched:', products.length, products.map(p => p.productIdentifier));
       setOfferings(o);
       setConsumables(products);
-    } catch {
-      // Products unavailable — user can still see the UI, purchase will fail gracefully
+    } catch (e: any) {
+      console.error('[Paywall] loadProducts error:', e?.message, e?.code);
     } finally {
       setLoadingProducts(false);
     }
