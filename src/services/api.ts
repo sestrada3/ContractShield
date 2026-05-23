@@ -61,6 +61,17 @@ export async function syncPurchase(): Promise<void> {
   if (!res.ok) throw new Error('Could not sync purchase');
 }
 
+// ── Credits: add after consumable purchase ───────────────────────────────────
+export async function addCredits(productId: string, transactionId: string): Promise<{ credits: number }> {
+  const res = await fetch(`${BASE_URL}/api/credits/add`, {
+    method: 'POST',
+    headers: await authHeaders(),
+    body: JSON.stringify({ productId, transactionId }),
+  });
+  if (!res.ok) throw new Error('Could not add credits');
+  return res.json();
+}
+
 // ── Delete account ───────────────────────────────────────────────────────────
 export async function deleteAccount(): Promise<void> {
   const res = await fetch(`${BASE_URL}/api/account`, {

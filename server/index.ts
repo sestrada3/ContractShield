@@ -216,8 +216,15 @@ app.post('/api/revenuecat/webhook', async (req, res) => {
       }
       case 'NON_SUBSCRIPTION_PURCHASE': {
         const creditsToAdd = event.product_id === 'com.contractshield.credits.10' ? 10 : 1;
-        const { data: p } = await supabase.from('profiles').select('credits').eq('id', appUserId).single();
-        await supabase.from('profiles').update({ credits: (p?.credits || 0) + creditsToAdd }).eq('id', appUserId);
+        // Use store_transaction_id as idempotency key so the direct client call and
+        // the webhook can't both add credits for the same purchase.
+        const txId = event.store_transaction_id || event.id;
+        const { data: p } = await supabase.from('profiles').select('credits, credited_transaction_ids').eq('id', appUserId).single();
+        if (p?.credited_transaction_ids?.includes(txId)) break;
+        await supabase.from('profiles').update({
+          credits: (p?.credits || 0) + creditsToAdd,
+          credited_transaction_ids: [...(p?.credited_transaction_ids || []), txId],
+        }).eq('id', appUserId);
         break;
       }
       case 'EXPIRATION':
@@ -256,6 +263,41 @@ app.post('/api/revenuecat/sync', requireAuth, async (req: any, res) => {
   } catch (e: any) {
     console.error('RevenueCat sync error:', e.message);
     res.status(500).json({ error: 'Could not sync subscription status.' });
+  }
+});
+
+// ── Credits: add immediately after consumable purchase ──────────────────────
+// Called by the client right after a successful purchase so credits update
+// instantly rather than waiting for the async RevenueCat webhook.
+// Uses the Apple transaction ID as an idempotency key so this endpoint and
+// the webhook can't both count the same purchase.
+app.post('/api/credits/add', requireAuth, async (req: any, res) => {
+  const userId = req.user.id;
+  const { productId, transactionId } = req.body;
+  if (!productId || !transactionId) return res.status(400).json({ error: 'Missing productId or transactionId' });
+
+  const creditsToAdd = productId === 'com.contractshield.credits.10' ? 10 : 1;
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('credits, credited_transaction_ids')
+      .eq('id', userId)
+      .single();
+
+    if (profile?.credited_transaction_ids?.includes(transactionId)) {
+      return res.json({ credits: profile.credits });
+    }
+
+    const newCredits = (profile?.credits || 0) + creditsToAdd;
+    await supabase.from('profiles').update({
+      credits: newCredits,
+      credited_transaction_ids: [...(profile?.credited_transaction_ids || []), transactionId],
+    }).eq('id', userId);
+
+    res.json({ credits: newCredits });
+  } catch (e: any) {
+    console.error('Credits add error:', e.message);
+    res.status(500).json({ error: 'Could not add credits.' });
   }
 });
 

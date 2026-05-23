@@ -36,6 +36,8 @@ interface AppState {
   freeUsed: number;
   freeLimit: number;
   credits: number;
+  creditFloor: number;
+  creditFloorExpiry: number;
 
   // Analysis
   currentResult: AnalysisResult | null;
@@ -47,6 +49,7 @@ interface AppState {
   setUser: (user: User | null) => void;
   setIsPro: (isPro: boolean) => void;
   setUsage: (used: number, limit: number, credits?: number) => void;
+  setCreditFloor: (credits: number) => void;
   setResult: (result: AnalysisResult) => void;
   setAnalyzing: (val: boolean) => void;
   setError: (error: string | null) => void;
@@ -59,6 +62,8 @@ export const useStore = create<AppState>((set) => ({
   freeUsed: 0,
   freeLimit: 3,
   credits: 0,
+  creditFloor: 0,
+  creditFloorExpiry: 0,
   currentResult: null,
   history: [],
   isAnalyzing: false,
@@ -66,7 +71,14 @@ export const useStore = create<AppState>((set) => ({
 
   setUser: (user) => set({ user }),
   setIsPro: (isPro) => set({ isPro }),
-  setUsage: (freeUsed, freeLimit, credits) => set((s) => ({ freeUsed, freeLimit, credits: credits ?? s.credits })),
+  setUsage: (freeUsed, freeLimit, credits) => set((s) => ({
+    freeUsed,
+    freeLimit,
+    credits: credits === undefined
+      ? s.credits
+      : (s.creditFloorExpiry > Date.now() && credits < s.creditFloor ? s.creditFloor : credits),
+  })),
+  setCreditFloor: (credits) => set(() => ({ creditFloor: credits, creditFloorExpiry: Date.now() + 60_000 })),
   setResult: (result) => set((state) => ({
     currentResult: result,
     history: [result, ...state.history.slice(0, 19)],

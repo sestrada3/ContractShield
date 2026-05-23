@@ -13,7 +13,7 @@ import Purchases, {
   PurchasesStoreProduct,
   PURCHASES_ERROR_CODE,
 } from 'react-native-purchases';
-import { syncPurchase, getUsage } from '../services/api';
+import { syncPurchase, getUsage, addCredits } from '../services/api';
 import { useStore } from '../services/store';
 import { C } from '../theme';
 
@@ -58,7 +58,7 @@ type Tab = 'plans' | 'payg';
 
 export default function PaywallScreen() {
   const navigation = useNavigation<any>();
-  const { setIsPro, setUsage } = useStore();
+  const { setIsPro, setUsage, setCreditFloor, freeUsed, freeLimit, credits } = useStore();
 
   const [tab, setTab]   = useState<Tab>('plans');
   const [plan, setPlan] = useState<'monthly' | 'yearly'>('yearly');
@@ -127,12 +127,23 @@ export default function PaywallScreen() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(productId);
     try {
-      await Purchases.purchaseStoreProduct(product);
-      // Credits are added by the RevenueCat webhook asynchronously. Apply optimistically
-      // so the user sees their balance immediately without waiting for the webhook.
+      const { customerInfo } = await Purchases.purchaseStoreProduct(product);
       const creditsToAdd = productId === PRODUCT_CREDIT_10 ? 10 : 1;
-      const usage = await getUsage();
-      setUsage(usage.used, usage.limit, usage.credits + creditsToAdd);
+      const newCredits = credits + creditsToAdd;
+
+      // Optimistic update so the UI reflects the purchase immediately.
+      setCreditFloor(newCredits);
+      setUsage(freeUsed, freeLimit, newCredits);
+
+      // Update the server now — don't wait for the async RevenueCat webhook.
+      // The Apple transaction ID is the idempotency key so the webhook can't
+      // double-count if it also fires later.
+      const tx = [...customerInfo.nonSubscriptionTransactions]
+        .filter(t => t.productIdentifier === productId)
+        .sort((a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime())[0];
+      const transactionId = tx?.transactionIdentifier ?? `${productId}_${Date.now()}`;
+      addCredits(productId, transactionId).catch(() => {});
+
       navigation.goBack();
     } catch (e: any) {
       if (e?.code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR) return;
