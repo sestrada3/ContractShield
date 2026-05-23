@@ -164,8 +164,13 @@ export default function HomeScreen() {
             setUsage(freeUsed + 1, freeLimit);
           }
         }
-        clearFloor();
-        getUsage().then(u => { setIsPro(u.isPro); setUsage(u.used, u.limit, u.credits); }).catch(() => {});
+        // Clear the floor only after getUsage() confirms the server value — never
+        // before, or a race-condition getUsage() returning 0 will wipe credits.
+        getUsage().then(u => {
+          setIsPro(u.isPro);
+          setUsage(u.used, u.limit, u.credits);
+          clearFloor();
+        }).catch(() => {});
       });
     } catch (e: any) {
       if (cancelled.current) return;
