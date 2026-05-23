@@ -151,7 +151,15 @@ export default function PaywallScreen() {
       // to 0 on every screen focus. Let useFocusEffect's getUsage() clear the
       // floor once it actually reads the confirmed value from the DB.
       try {
-        await addCredits(productId, transactionId);
+        const result = await addCredits(productId, transactionId);
+        if (result?.credits !== undefined && result.credits < newCredits) {
+          // Idempotency blocked the update — Apple sandbox reuses transaction IDs.
+          // In production every purchase gets a unique ID so this never happens.
+          Alert.alert(
+            'Sandbox: duplicate transaction ID',
+            `DB not updated (idempotency hit for tx: ${transactionId}).\n\nRun in Supabase:\nUPDATE profiles SET credited_transaction_ids = '{}' WHERE id = (SELECT id FROM auth.users WHERE email = 'YOUR_TEST_EMAIL');`,
+          );
+        }
       } catch (e: any) {
         Alert.alert('Credits sync failed', e?.message || String(e));
       }
