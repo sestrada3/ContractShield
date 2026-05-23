@@ -297,13 +297,16 @@ app.post('/api/credits/add', requireAuth, async (req: any, res) => {
 
     if (selectError) throw new Error(selectError.message);
 
+    console.log(`[credits/add] userId=${userId} product=${productId} tx=${transactionId} currentCredits=${profile?.credits}`);
+
     // Idempotency check — skip if this transaction was already credited
     if (profile?.credited_transaction_ids?.includes(transactionId)) {
+      console.log(`[credits/add] idempotency hit — already credited tx ${transactionId}`);
       return res.json({ credits: profile.credits });
     }
 
     const newCredits = (profile?.credits || 0) + creditsToAdd;
-    console.log(`[credits/add] userId=${userId} product=${productId} tx=${transactionId} currentCredits=${profile?.credits} newCredits=${newCredits}`);
+    console.log(`[credits/add] writing newCredits=${newCredits}`);
 
     const { error: creditsError } = await supabase
       .from('profiles')
