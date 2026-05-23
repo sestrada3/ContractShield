@@ -137,14 +137,23 @@ app.post('/api/analyze', rateLimit({ windowMs: 60_000, max: 5 }), requireAuth, a
       return res.status(500).json({ error: 'Analysis failed — could not parse response. Please try again.' });
     }
 
-    // Deduct usage — upsert so a missing profile row doesn't silently skip tracking
+    // Deduct usage — re-read profile first so we use the latest credits value.
+    // The LLM call above can take 10-30s, during which addCredits may have updated
+    // the DB. Using the stale value from the top of the handler would clobber it.
     if (!isPro) {
-      if (credits > 0) {
+      const { data: freshProfile } = await supabase
+        .from('profiles')
+        .select('credits, free_analyses_used')
+        .eq('id', userId)
+        .single();
+      const freshCredits = freshProfile?.credits || 0;
+      const freshUsed    = freshProfile?.free_analyses_used || 0;
+      if (freshCredits > 0) {
         await supabase.from('profiles')
-          .upsert({ id: userId, credits: credits - 1 }, { onConflict: 'id' });
+          .upsert({ id: userId, credits: freshCredits - 1 }, { onConflict: 'id' });
       } else {
         await supabase.from('profiles')
-          .upsert({ id: userId, free_analyses_used: used + 1 }, { onConflict: 'id' });
+          .upsert({ id: userId, free_analyses_used: freshUsed + 1 }, { onConflict: 'id' });
       }
     }
 
