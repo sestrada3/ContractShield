@@ -50,8 +50,8 @@ const mockOfferings = {
 };
 
 const mockConsumables = [
-  { productIdentifier: 'com.contractshield.credits.1',  priceString: '$2.99' },
-  { productIdentifier: 'com.contractshield.credits.10', priceString: '$14.99' },
+  { identifier: 'com.contractshield.credits.1',  priceString: '$2.99' },
+  { identifier: 'com.contractshield.credits.10', priceString: '$14.99' },
 ];
 
 let mockAlert: jest.SpyInstance;
@@ -227,7 +227,7 @@ describe('PaywallScreen — Pay As You Go tab', () => {
     const buyButtons = getAllByText('Buy');
     await act(async () => { fireEvent.press(buyButtons[0]); });
     expect(mockPurchaseStoreProduct).toHaveBeenCalledWith(
-      expect.objectContaining({ productIdentifier: 'com.contractshield.credits.1' })
+      expect.objectContaining({ identifier: 'com.contractshield.credits.1' })
     );
   });
 
@@ -239,7 +239,7 @@ describe('PaywallScreen — Pay As You Go tab', () => {
     const buyButtons = getAllByText('Buy');
     await act(async () => { fireEvent.press(buyButtons[1]); });
     expect(mockPurchaseStoreProduct).toHaveBeenCalledWith(
-      expect.objectContaining({ productIdentifier: 'com.contractshield.credits.10' })
+      expect.objectContaining({ identifier: 'com.contractshield.credits.10' })
     );
   });
 
