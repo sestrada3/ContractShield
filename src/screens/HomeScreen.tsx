@@ -158,18 +158,19 @@ export default function HomeScreen() {
       // completes — avoids UI jank on the HomeScreen when returning from Results.
       InteractionManager.runAfterInteractions(() => {
         if (!isPro) {
+          // Analysis takes 10-30s — the purchase webhook has long since updated the
+          // DB by now, so the credit floor is no longer needed. Clear it first so
+          // the deduction isn't blocked by a floor set during a preceding purchase.
+          clearFloor();
           if (credits > 0) {
             setUsage(freeUsed, freeLimit, credits - 1);
           } else {
             setUsage(freeUsed + 1, freeLimit);
           }
         }
-        // Clear the floor only after getUsage() confirms the server value — never
-        // before, or a race-condition getUsage() returning 0 will wipe credits.
         getUsage().then(u => {
           setIsPro(u.isPro);
           setUsage(u.used, u.limit, u.credits);
-          clearFloor();
         }).catch(() => {});
       });
     } catch (e: any) {
