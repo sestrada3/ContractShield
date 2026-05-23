@@ -54,7 +54,7 @@ function LoadingOverlay({ onCancel }: { onCancel: () => void }) {
 
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
-  const { setResult, setAnalyzing, setError, setIsPro, setUsage, isAnalyzing, isPro, freeUsed, freeLimit, credits } = useStore();
+  const { setResult, setAnalyzing, setError, setIsPro, setUsage, clearFloor, isAnalyzing, isPro, freeUsed, freeLimit, credits } = useStore();
 
   const [text, setText]           = useState('');
   const [fileName, setFileName]   = useState('');
@@ -149,8 +149,19 @@ export default function HomeScreen() {
       });
       if (cancelled.current) return;
       setResult(result);
-      // Optimistically decrement so the badge updates instantly (server confirms on next focus)
-      if (!isPro) setUsage(freeUsed + 1, freeLimit);
+      if (!isPro) {
+        if (credits > 0) {
+          // Paid credit consumed — decrement immediately so badge is correct right away.
+          setUsage(freeUsed, freeLimit, credits - 1);
+        } else {
+          setUsage(freeUsed + 1, freeLimit);
+        }
+      }
+      // Clear the purchase-protection floor before refreshing from server.
+      // The floor's job was to guard the optimistic purchase value; after a
+      // successful analysis the server value is authoritative and should be
+      // accepted directly rather than being held at the pre-deduction floor.
+      clearFloor();
       getUsage().then(u => { setIsPro(u.isPro); setUsage(u.used, u.limit, u.credits); }).catch(() => {});
       setText('');
       setImageData(null);

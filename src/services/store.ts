@@ -50,6 +50,7 @@ interface AppState {
   setIsPro: (isPro: boolean) => void;
   setUsage: (used: number, limit: number, credits?: number) => void;
   setCreditFloor: (credits: number) => void;
+  clearFloor: () => void;
   setResult: (result: AnalysisResult) => void;
   setAnalyzing: (val: boolean) => void;
   setError: (error: string | null) => void;
@@ -86,6 +87,7 @@ export const useStore = create<AppState>((set) => ({
     return { ...base, credits };
   }),
   setCreditFloor: (credits) => set(() => ({ creditFloor: credits, creditFloorExpiry: Date.now() + 5 * 60_000 })),
+  clearFloor: () => set({ creditFloor: 0, creditFloorExpiry: 0 }),
   setResult: (result) => set((state) => ({
     currentResult: result,
     history: [result, ...state.history.slice(0, 19)],
