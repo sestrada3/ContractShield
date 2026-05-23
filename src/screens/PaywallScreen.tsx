@@ -120,8 +120,8 @@ export default function PaywallScreen() {
   };
 
   const handleOneTime = async (productId: string) => {
-    Alert.alert('DIAG', `looking for:\n"${productId}"\n\nfound in ref:\n${consumablesRef.current.map(p => `"${p.productIdentifier}"`).join('\n') || '(empty)'}`);
-    const product = consumablesRef.current.find(p => p.productIdentifier === productId);
+    Alert.alert('DIAG', `looking for:\n"${productId}"\n\nfound in ref:\n${consumablesRef.current.map(p => `"${p.identifier}"`).join('\n') || '(empty)'}`);
+    const product = consumablesRef.current.find(p => p.identifier === productId);
     if (!product) {
       Alert.alert('Not available', 'Products could not be loaded. Please check your connection and try again.');
       return;
@@ -146,8 +146,8 @@ export default function PaywallScreen() {
 
   const monthlyPrice = monthlyPkg?.storeProduct?.priceString ?? '$9.99';
   const yearlyTotal  = yearlyPkg?.storeProduct?.priceString  ?? '$71.88';
-  const credit1Price  = consumables.find(p => p.productIdentifier === PRODUCT_CREDIT_1)?.priceString  ?? '$2.99';
-  const credit10Price = consumables.find(p => p.productIdentifier === PRODUCT_CREDIT_10)?.priceString ?? '$14.99';
+  const credit1Price  = consumables.find(p => p.identifier === PRODUCT_CREDIT_1)?.priceString  ?? '$2.99';
+  const credit10Price = consumables.find(p => p.identifier === PRODUCT_CREDIT_10)?.priceString ?? '$14.99';
 
   return (
     <SafeAreaView style={s.safe}>
