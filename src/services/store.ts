@@ -71,14 +71,21 @@ export const useStore = create<AppState>((set) => ({
 
   setUser: (user) => set({ user }),
   setIsPro: (isPro) => set({ isPro }),
-  setUsage: (freeUsed, freeLimit, credits) => set((s) => ({
-    freeUsed,
-    freeLimit,
-    credits: credits === undefined
-      ? s.credits
-      : (s.creditFloorExpiry > Date.now() && credits < s.creditFloor ? s.creditFloor : credits),
-  })),
-  setCreditFloor: (credits) => set(() => ({ creditFloor: credits, creditFloorExpiry: Date.now() + 60_000 })),
+  setUsage: (freeUsed, freeLimit, credits) => set((s) => {
+    const base = { freeUsed, freeLimit };
+    if (credits === undefined) return { ...base, credits: s.credits };
+    const floorActive = s.creditFloor > 0 && s.creditFloorExpiry > Date.now();
+    if (floorActive && credits >= s.creditFloor) {
+      // Server has caught up — use server value and clear floor
+      return { ...base, credits, creditFloor: 0, creditFloorExpiry: 0 };
+    }
+    if (floorActive && credits < s.creditFloor) {
+      // Server not yet caught up — hold the floor
+      return { ...base, credits: s.creditFloor };
+    }
+    return { ...base, credits };
+  }),
+  setCreditFloor: (credits) => set(() => ({ creditFloor: credits, creditFloorExpiry: Date.now() + 5 * 60_000 })),
   setResult: (result) => set((state) => ({
     currentResult: result,
     history: [result, ...state.history.slice(0, 19)],

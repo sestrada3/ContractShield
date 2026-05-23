@@ -142,7 +142,14 @@ export default function PaywallScreen() {
         .filter(t => t.productIdentifier === productId)
         .sort((a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime())[0];
       const transactionId = tx?.transactionIdentifier ?? `${productId}_${Date.now()}`;
-      addCredits(productId, transactionId).catch(() => {});
+      addCredits(productId, transactionId)
+        .then(({ credits: serverCredits }) => {
+          // Server confirmed — update store with real value, which also clears the floor
+          // so any subsequent analysis subtracts from the correct post-purchase count.
+          const s = useStore.getState();
+          s.setUsage(s.freeUsed, s.freeLimit, serverCredits);
+        })
+        .catch(() => {});
 
       navigation.goBack();
     } catch (e: any) {
