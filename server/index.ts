@@ -199,7 +199,9 @@ app.get('/api/history', requireAuth, async (req: any, res) => {
 // Secured via a shared secret in the Authorization header.
 app.post('/api/revenuecat/webhook', async (req, res) => {
   const auth = req.headers.authorization;
+  console.log('[webhook] received - auth header present:', !!auth, '| expected secret set:', !!process.env.REVENUECAT_WEBHOOK_SECRET);
   if (!auth || auth !== `Bearer ${process.env.REVENUECAT_WEBHOOK_SECRET}`) {
+    console.log('[webhook] 401 - auth mismatch. received:', auth?.slice(0, 30), '| expected: Bearer', process.env.REVENUECAT_WEBHOOK_SECRET?.slice(0, 10) + '...');
     return res.status(401).json({ error: 'Unauthorized' });
   }
 

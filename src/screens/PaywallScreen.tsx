@@ -152,7 +152,9 @@ export default function PaywallScreen() {
       // floor once it actually reads the confirmed value from the DB.
       try {
         await addCredits(productId, transactionId);
-      } catch {}
+      } catch (e: any) {
+        Alert.alert('Credits sync failed', e?.message || String(e));
+      }
 
       navigation.goBack();
     } catch (e: any) {
