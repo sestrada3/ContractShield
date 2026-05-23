@@ -386,11 +386,8 @@ app.post('/api/admin/users/:id/password-reset', requireAdmin, async (req, res) =
   try {
     const { data: { user }, error } = await supabase.auth.admin.getUserById(id);
     if (error || !user?.email) return res.status(404).json({ error: 'User not found' });
-    const { error: linkErr } = await supabase.auth.admin.generateLink({
-      type: 'recovery',
-      email: user.email,
-    });
-    if (linkErr) throw linkErr;
+    const { error: resetErr } = await supabase.auth.resetPasswordForEmail(user.email);
+    if (resetErr) throw resetErr;
     res.json({ success: true });
   } catch (e: any) {
     res.status(500).json({ error: e.message });
