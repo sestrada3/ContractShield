@@ -202,9 +202,7 @@ app.post('/api/revenuecat/webhook', async (req, res) => {
   const secret = process.env.REVENUECAT_WEBHOOK_SECRET;
   // RevenueCat sends the Authorization header as the raw secret value (no Bearer prefix)
   const receivedSecret = auth?.startsWith('Bearer ') ? auth.slice(7) : auth;
-  console.log('[webhook] received - auth present:', !!auth, '| secret set:', !!secret, '| match:', receivedSecret === secret);
   if (!receivedSecret || receivedSecret !== secret) {
-    console.log('[webhook] 401 - received:', auth?.slice(0, 40));
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
@@ -212,8 +210,6 @@ app.post('/api/revenuecat/webhook', async (req, res) => {
   const appUserId = event?.app_user_id; // This is the Supabase user ID
 
   if (!appUserId) return res.status(400).json({ error: 'Missing app_user_id' });
-
-  console.log(`[webhook] event type: ${event.type} | product: ${event.product_id} | user: ${appUserId}`);
 
   try {
     switch (event.type) {
@@ -236,16 +232,11 @@ app.post('/api/revenuecat/webhook', async (req, res) => {
         const txId = event.store_transaction_id
           || `${appUserId}:${event.product_id}:${event.purchase_date}`;
         const { data: p } = await supabase.from('profiles').select('credits, credited_transaction_ids').eq('id', appUserId).single();
-        console.log(`[webhook] NON_SUB txId=${txId} currentCredits=${p?.credits} alreadyCredited=${p?.credited_transaction_ids?.includes(txId)}`);
-        if (p?.credited_transaction_ids?.includes(txId)) {
-          console.log(`[webhook] idempotency hit — skipping`);
-          break;
-        }
-        const { error: e2 } = await supabase.from('profiles').update({
+        if (p?.credited_transaction_ids?.includes(txId)) break;
+        await supabase.from('profiles').update({
           credits: (p?.credits || 0) + creditsToAdd,
           credited_transaction_ids: [...(p?.credited_transaction_ids || []), txId],
         }).eq('id', appUserId);
-        console.log(`[webhook] NON_SUB credits update: +${creditsToAdd} → ${(p?.credits || 0) + creditsToAdd} | error: ${e2?.message}`);
         break;
       }
       case 'EXPIRATION':
@@ -307,16 +298,11 @@ app.post('/api/credits/add', requireAuth, async (req: any, res) => {
 
     if (selectError) throw new Error(selectError.message);
 
-    console.log(`[credits/add] userId=${userId} product=${productId} tx=${transactionId} currentCredits=${profile?.credits}`);
-
-    // Idempotency check — skip if this transaction was already credited
     if (profile?.credited_transaction_ids?.includes(transactionId)) {
-      console.log(`[credits/add] idempotency hit — already credited tx ${transactionId}`);
       return res.json({ credits: profile.credits });
     }
 
     const newCredits = (profile?.credits || 0) + creditsToAdd;
-    console.log(`[credits/add] writing newCredits=${newCredits}`);
 
     const { error: creditsError } = await supabase
       .from('profiles')
@@ -331,8 +317,6 @@ app.post('/api/credits/add', requireAuth, async (req: any, res) => {
       .select('credits')
       .eq('id', userId)
       .single();
-
-    console.log(`[credits/add] verify read: credits=${verify?.credits} verifyError=${verifyError?.message}`);
 
     if (verifyError) throw new Error(`verify read failed: ${verifyError.message}`);
     if ((verify?.credits ?? -1) !== newCredits) {
