@@ -66,7 +66,11 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       getUsage()
-        .then(u => { setIsPro(u.isPro); setUsage(u.used, u.limit, u.credits); })
+        .then(u => {
+          clearFloor();
+          setIsPro(u.isPro);
+          setUsage(u.used, u.limit, u.credits);
+        })
         .catch(() => {});
     }, [])
   );
