@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  TextInput, ActivityIndicator, Alert, Image, Animated
+  TextInput, ActivityIndicator, Alert, Image, Animated, InteractionManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -149,25 +149,24 @@ export default function HomeScreen() {
       });
       if (cancelled.current) return;
       setResult(result);
-      if (!isPro) {
-        if (credits > 0) {
-          // Paid credit consumed — decrement immediately so badge is correct right away.
-          setUsage(freeUsed, freeLimit, credits - 1);
-        } else {
-          setUsage(freeUsed + 1, freeLimit);
-        }
-      }
-      // Clear the purchase-protection floor before refreshing from server.
-      // The floor's job was to guard the optimistic purchase value; after a
-      // successful analysis the server value is authoritative and should be
-      // accepted directly rather than being held at the pre-deduction floor.
-      clearFloor();
-      getUsage().then(u => { setIsPro(u.isPro); setUsage(u.used, u.limit, u.credits); }).catch(() => {});
       setText('');
       setImageData(null);
       setPdfBase64(null);
       setFileName('');
       navigation.navigate('Results');
+      // Defer store updates + server refresh until after the navigation animation
+      // completes — avoids UI jank on the HomeScreen when returning from Results.
+      InteractionManager.runAfterInteractions(() => {
+        if (!isPro) {
+          if (credits > 0) {
+            setUsage(freeUsed, freeLimit, credits - 1);
+          } else {
+            setUsage(freeUsed + 1, freeLimit);
+          }
+        }
+        clearFloor();
+        getUsage().then(u => { setIsPro(u.isPro); setUsage(u.used, u.limit, u.credits); }).catch(() => {});
+      });
     } catch (e: any) {
       if (cancelled.current) return;
       const status = e?.response?.status;
