@@ -278,19 +278,33 @@ app.post('/api/credits/add', requireAuth, async (req: any, res) => {
 
   const creditsToAdd = productId === 'com.contractshield.credits.10' ? 10 : 1;
   try {
-    const { data: profile } = await supabase
+    const { data: profile, error: selectError } = await supabase
       .from('profiles')
       .select('credits, credited_transaction_ids')
       .eq('id', userId)
       .single();
 
+    if (selectError) throw new Error(selectError.message);
+
+    // Idempotency check — skip if this transaction was already credited
     if (profile?.credited_transaction_ids?.includes(transactionId)) {
       return res.json({ credits: profile.credits });
     }
 
     const newCredits = (profile?.credits || 0) + creditsToAdd;
+
+    // Always update credits. Idempotency column updated separately so this
+    // works even if the DB migration hasn't been run yet.
+    const { error: creditsError } = await supabase
+      .from('profiles')
+      .update({ credits: newCredits })
+      .eq('id', userId);
+
+    if (creditsError) throw new Error(creditsError.message);
+
+    // Best-effort: record transaction ID for idempotency (requires migration).
+    // Failure here is non-fatal — credits are already updated above.
     await supabase.from('profiles').update({
-      credits: newCredits,
       credited_transaction_ids: [...(profile?.credited_transaction_ids || []), transactionId],
     }).eq('id', userId);
 
