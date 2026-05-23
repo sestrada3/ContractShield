@@ -302,14 +302,21 @@ app.post('/api/credits/add', requireAuth, async (req: any, res) => {
 
     const newCredits = (profile?.credits || 0) + creditsToAdd;
 
-    // Always update credits. Idempotency column updated separately so this
-    // works even if the DB migration hasn't been run yet.
-    const { error: creditsError } = await supabase
+    // Use select() so the response includes the written row — this lets us
+    // detect silent 0-row updates (e.g. profile row missing) rather than
+    // returning a computed value that was never actually persisted.
+    const { data: updated, error: creditsError } = await supabase
       .from('profiles')
       .update({ credits: newCredits })
-      .eq('id', userId);
+      .eq('id', userId)
+      .select('credits')
+      .single();
 
-    if (creditsError) throw new Error(creditsError.message);
+    if (creditsError || !updated) {
+      // update() with .select().single() errors if 0 rows matched — meaning
+      // the profile row doesn't exist. Throw so the client keeps its floor.
+      throw new Error(creditsError?.message || 'Profile row not found — credits not written');
+    }
 
     // Best-effort: record transaction ID for idempotency (requires migration).
     // Failure here is non-fatal — credits are already updated above.
@@ -317,7 +324,7 @@ app.post('/api/credits/add', requireAuth, async (req: any, res) => {
       credited_transaction_ids: [...(profile?.credited_transaction_ids || []), transactionId],
     }).eq('id', userId);
 
-    res.json({ credits: newCredits });
+    res.json({ credits: updated.credits });
   } catch (e: any) {
     console.error('Credits add error:', e.message);
     res.status(500).json({ error: 'Could not add credits.' });

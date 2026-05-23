@@ -143,17 +143,16 @@ export default function PaywallScreen() {
         .sort((a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime())[0];
       const transactionId = tx?.transactionIdentifier ?? `${productId}_${Date.now()}`;
 
-      // Await the server update so the DB reflects the purchase before HomeScreen
-      // refocuses and calls getUsage(). This prevents getUsage() from seeing 0
-      // credits and wiping out the optimistic update.
+      // Await the server update before navigating back so the DB is written
+      // before HomeScreen's useFocusEffect calls getUsage(). We do NOT call
+      // setUsage() here — the credit floor already shows the right optimistic
+      // value, and clearing it here based on addCredits' response (which can
+      // lie if the UPDATE silently hit 0 rows) is what caused credits to drop
+      // to 0 on every screen focus. Let useFocusEffect's getUsage() clear the
+      // floor once it actually reads the confirmed value from the DB.
       try {
-        const { credits: serverCredits } = await addCredits(productId, transactionId);
-        setUsage(freeUsed, freeLimit, serverCredits);
-      } catch {
-        // Server update failed — keep the optimistic state; the credit floor
-        // will guard getUsage() from showing 0. RevenueCat webhook will add
-        // credits asynchronously as a fallback.
-      }
+        await addCredits(productId, transactionId);
+      } catch {}
 
       navigation.goBack();
     } catch (e: any) {
