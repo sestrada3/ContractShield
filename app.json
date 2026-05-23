@@ -35,6 +35,7 @@
       ]
     },
     "plugins": [
+      "expo-updates",
       "expo-document-picker",
       "expo-image-picker",
       [
@@ -50,6 +51,12 @@
       ],
       "expo-secure-store"
     ],
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/793a4d6a-48c0-4575-9d1b-c52a456c4dc7"
+    },
     "scheme": "contractshield",
     "extra": {
       "eas": {

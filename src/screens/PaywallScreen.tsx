@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, Alert, ActivityIndicator,
@@ -66,6 +66,7 @@ export default function PaywallScreen() {
 
   const [offerings, setOfferings]     = useState<PurchasesOfferings | null>(null);
   const [consumables, setConsumables] = useState<PurchasesStoreProduct[]>([]);
+  const consumablesRef = useRef<PurchasesStoreProduct[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
 
   useEffect(() => {
@@ -75,14 +76,15 @@ export default function PaywallScreen() {
   const loadProducts = async () => {
     setLoadingProducts(true);
     try {
-      const [o, products] = await Promise.all([
+      const [o, products] = await Promise.allSettled([
         Purchases.getOfferings(),
         Purchases.getProducts([PRODUCT_CREDIT_1, PRODUCT_CREDIT_10]),
       ]);
-      setOfferings(o);
-      setConsumables(products);
-    } catch {
-      // Products unavailable — user can still see the UI, purchase will fail gracefully
+      if (o.status === 'fulfilled') setOfferings(o.value);
+      if (products.status === 'fulfilled') {
+        consumablesRef.current = products.value;
+        setConsumables(products.value);
+      }
     } finally {
       setLoadingProducts(false);
     }
@@ -117,7 +119,7 @@ export default function PaywallScreen() {
   };
 
   const handleOneTime = async (productId: string) => {
-    const product = consumables.find(p => p.productIdentifier === productId);
+    const product = consumablesRef.current.find(p => p.identifier === productId);
     if (!product) {
       Alert.alert('Not available', 'Products could not be loaded. Please check your connection and try again.');
       return;
@@ -126,9 +128,11 @@ export default function PaywallScreen() {
     setLoading(productId);
     try {
       await Purchases.purchaseStoreProduct(product);
-      await syncPurchase();
+      // Credits are added by the RevenueCat webhook asynchronously. Apply optimistically
+      // so the user sees their balance immediately without waiting for the webhook.
+      const creditsToAdd = productId === PRODUCT_CREDIT_10 ? 10 : 1;
       const usage = await getUsage();
-      setUsage(usage.used, usage.limit, usage.credits);
+      setUsage(usage.used, usage.limit, usage.credits + creditsToAdd);
       navigation.goBack();
     } catch (e: any) {
       if (e?.code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR) return;
@@ -140,8 +144,8 @@ export default function PaywallScreen() {
 
   const monthlyPrice = monthlyPkg?.storeProduct?.priceString ?? '$9.99';
   const yearlyTotal  = yearlyPkg?.storeProduct?.priceString  ?? '$71.88';
-  const credit1Price  = consumables.find(p => p.productIdentifier === PRODUCT_CREDIT_1)?.priceString  ?? '$2.99';
-  const credit10Price = consumables.find(p => p.productIdentifier === PRODUCT_CREDIT_10)?.priceString ?? '$14.99';
+  const credit1Price  = consumables.find(p => p.identifier === PRODUCT_CREDIT_1)?.priceString  ?? '$2.99';
+  const credit10Price = consumables.find(p => p.identifier === PRODUCT_CREDIT_10)?.priceString ?? '$14.99';
 
   return (
     <SafeAreaView style={s.safe}>
