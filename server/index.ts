@@ -213,6 +213,8 @@ app.post('/api/revenuecat/webhook', async (req, res) => {
 
   if (!appUserId) return res.status(400).json({ error: 'Missing app_user_id' });
 
+  console.log(`[webhook] event type: ${event.type} | product: ${event.product_id} | user: ${appUserId}`);
+
   try {
     switch (event.type) {
       case 'INITIAL_PURCHASE':
@@ -224,21 +226,25 @@ app.post('/api/revenuecat/webhook', async (req, res) => {
           // Consumable purchase — add credits based on product ID
           const creditsToAdd = event.product_id === 'com.contractshield.credits.10' ? 10 : 1;
           const { data: p } = await supabase.from('profiles').select('credits').eq('id', appUserId).single();
-          await supabase.from('profiles').update({ credits: (p?.credits || 0) + creditsToAdd }).eq('id', appUserId);
+          const { error: e1 } = await supabase.from('profiles').update({ credits: (p?.credits || 0) + creditsToAdd }).eq('id', appUserId);
+          console.log(`[webhook] INITIAL/RENEWAL credits update: +${creditsToAdd} → ${(p?.credits || 0) + creditsToAdd} | error: ${e1?.message}`);
         }
         break;
       }
       case 'NON_SUBSCRIPTION_PURCHASE': {
         const creditsToAdd = event.product_id === 'com.contractshield.credits.10' ? 10 : 1;
-        // Use store_transaction_id as idempotency key so the direct client call and
-        // the webhook can't both add credits for the same purchase.
         const txId = event.store_transaction_id || event.id;
         const { data: p } = await supabase.from('profiles').select('credits, credited_transaction_ids').eq('id', appUserId).single();
-        if (p?.credited_transaction_ids?.includes(txId)) break;
-        await supabase.from('profiles').update({
+        console.log(`[webhook] NON_SUB txId=${txId} currentCredits=${p?.credits} alreadyCredited=${p?.credited_transaction_ids?.includes(txId)}`);
+        if (p?.credited_transaction_ids?.includes(txId)) {
+          console.log(`[webhook] idempotency hit — skipping`);
+          break;
+        }
+        const { error: e2 } = await supabase.from('profiles').update({
           credits: (p?.credits || 0) + creditsToAdd,
           credited_transaction_ids: [...(p?.credited_transaction_ids || []), txId],
         }).eq('id', appUserId);
+        console.log(`[webhook] NON_SUB credits update: +${creditsToAdd} → ${(p?.credits || 0) + creditsToAdd} | error: ${e2?.message}`);
         break;
       }
       case 'EXPIRATION':
