@@ -231,7 +231,8 @@ app.post('/api/revenuecat/webhook', async (req, res) => {
         }
         break;
       }
-      case 'NON_SUBSCRIPTION_PURCHASE': {
+      case 'NON_SUBSCRIPTION_PURCHASE':
+      case 'NON_RENEWING_PURCHASE': {
         const creditsToAdd = event.product_id === 'com.contractshield.credits.10' ? 10 : 1;
         const txId = event.store_transaction_id || event.id;
         const { data: p } = await supabase.from('profiles').select('credits, credited_transaction_ids').eq('id', appUserId).single();
