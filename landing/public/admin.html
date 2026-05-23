@@ -171,6 +171,16 @@
     .toast.show { opacity: 1; transform: translateY(0); }
     .toast.green { border-color: rgba(76,175,125,0.4); color: var(--green); }
     .toast.red   { border-color: rgba(224,82,82,0.4);  color: var(--red); }
+
+    /* ── Sortable headers ── */
+    .sortable { cursor: pointer; user-select: none; }
+    .sortable:hover { color: var(--tm); }
+    .sort-ind { margin-left: 3px; font-size: 9px; opacity: 0.8; }
+
+    /* ── Credits mode toggle ── */
+    .mode-toggle { display: flex; gap: 4px; margin-bottom: 14px; background: var(--hi); border-radius: 8px; padding: 3px; }
+    .mode-btn { flex: 1; padding: 7px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; border: none; background: transparent; color: var(--tm); transition: all 0.15s; }
+    .mode-btn.active { background: var(--surf); color: var(--t); }
   </style>
 </head>
 <body>
@@ -217,13 +227,14 @@
       <table id="user-table" style="display:none">
         <thead>
           <tr>
-            <th>Email</th>
-            <th>Plan</th>
-            <th>Credits</th>
-            <th>Free Used</th>
-            <th>Analyses</th>
-            <th>Joined</th>
-            <th>Last Sign In</th>
+            <th class="sortable" onclick="sortBy('email')">Email <span class="sort-ind" id="sort-email"></span></th>
+            <th class="sortable" onclick="sortBy('is_pro')">Plan <span class="sort-ind" id="sort-is_pro"></span></th>
+            <th class="sortable" onclick="sortBy('credits')">Credits <span class="sort-ind" id="sort-credits"></span></th>
+            <th class="sortable" onclick="sortBy('free_analyses_used')">Free Used <span class="sort-ind" id="sort-free_analyses_used"></span></th>
+            <th class="sortable" onclick="sortBy('total_analyses')">Analyses <span class="sort-ind" id="sort-total_analyses"></span></th>
+            <th class="sortable" onclick="sortBy('created_at')">Joined <span class="sort-ind" id="sort-created_at"></span></th>
+            <th class="sortable" onclick="sortBy('last_sign_in_at')">Last Sign In <span class="sort-ind" id="sort-last_sign_in_at"></span></th>
+            <th>Stripe</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -237,8 +248,12 @@
 <!-- Credits Modal -->
 <div class="modal-overlay" id="credits-modal">
   <div class="modal">
-    <h3>Set Credits</h3>
+    <h3 id="credits-modal-title">Set Credits</h3>
     <p id="credits-modal-email"></p>
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="mode-btn-set" onclick="setCreditsMode('set')">Set to</button>
+      <button class="mode-btn" id="mode-btn-add" onclick="setCreditsMode('add')">Add</button>
+    </div>
     <input type="number" id="credits-input" min="0" placeholder="Number of credits">
     <div class="modal-btns">
       <button class="btn-outline" onclick="closeModal()">Cancel</button>
@@ -255,6 +270,9 @@
   let allUsers = [];
   let currentFilter = 'all';
   let editingUserId = null;
+  let creditsMode = 'set';
+  let sortColumn = 'created_at';
+  let sortDir = -1;
 
   // ── Auth ──
   function login() {
@@ -300,6 +318,8 @@
       document.getElementById('main-screen').style.display = 'block';
       renderStats();
       renderTable();
+      const initInd = document.getElementById(`sort-${sortColumn}`);
+      if (initInd) initInd.textContent = ' ▼';
     } catch (e) {
       showToast('Failed to load users', 'red');
     } finally {
@@ -337,6 +357,13 @@
       return matchSearch && matchFilter;
     });
 
+    users = [...users].sort((a, b) => {
+      const av = a[sortColumn] ?? '', bv = b[sortColumn] ?? '';
+      if (av < bv) return -sortDir;
+      if (av > bv) return sortDir;
+      return 0;
+    });
+
     const tbody = document.getElementById('user-tbody');
     if (users.length === 0) {
       document.getElementById('user-table').style.display = 'none';
@@ -348,28 +375,28 @@
 
     tbody.innerHTML = users.map(u => `
       <tr id="row-${u.id}">
-        <td>
-          <div class="email">${u.email || '—'}</div>
-        </td>
-        <td>
-          <span class="badge ${u.is_pro ? 'badge-pro' : 'badge-free'}">${u.is_pro ? '✦ PRO' : 'FREE'}</span>
-        </td>
+        <td><div class="email">${u.email || '—'}</div></td>
+        <td><span class="badge ${u.is_pro ? 'badge-pro' : 'badge-free'}">${u.is_pro ? '✦ PRO' : 'FREE'}</span></td>
         <td>${u.credits}</td>
         <td>${u.free_analyses_used} / 3</td>
         <td>${u.total_analyses}</td>
         <td class="date">${fmtDate(u.created_at)}</td>
         <td class="date">${u.last_sign_in_at ? fmtDate(u.last_sign_in_at) : '—'}</td>
+        <td class="date">
+          ${u.stripe_customer_id
+            ? `<a href="https://dashboard.stripe.com/customers/${u.stripe_customer_id}" target="_blank" class="action-btn" style="text-decoration:none;display:inline-block">↗ Stripe</a>`
+            : '<span style="color:var(--td)">—</span>'}
+        </td>
         <td>
-          <div class="actions">
+          <div class="actions" style="flex-wrap:wrap;gap:5px;max-width:270px">
             <button class="action-btn pro" onclick="togglePro('${u.id}')">
               ${u.is_pro ? 'Revoke Pro' : 'Grant Pro'}
             </button>
-            <button class="action-btn" onclick="openCredits('${u.id}', '${u.email}', ${u.credits})">
-              Credits
-            </button>
-            <button class="action-btn danger" onclick="deleteUser('${u.id}', '${u.email}')">
-              Delete
-            </button>
+            <button class="action-btn" onclick="openCredits('${u.id}', '${u.email}', ${u.credits}, 'set')">Set Credits</button>
+            <button class="action-btn" onclick="openCredits('${u.id}', '${u.email}', ${u.credits}, 'add')">+Add</button>
+            <button class="action-btn" onclick="resetPassword('${u.id}', '${u.email}')">Reset Pwd</button>
+            <button class="action-btn" onclick="resetAnalyses('${u.id}', '${u.email}', ${u.free_analyses_used})">Reset Free</button>
+            <button class="action-btn danger" onclick="deleteUser('${u.id}', '${u.email}')">Delete</button>
           </div>
         </td>
       </tr>
@@ -396,12 +423,21 @@
     } catch { showToast('Failed', 'red'); }
   }
 
-  function openCredits(id, email, current) {
+  function openCredits(id, email, current, mode = 'set') {
     editingUserId = id;
     document.getElementById('credits-modal-email').textContent = email;
-    document.getElementById('credits-input').value = current;
+    document.getElementById('credits-input').value = mode === 'set' ? current : '';
+    setCreditsMode(mode);
     document.getElementById('credits-modal').classList.add('open');
     setTimeout(() => document.getElementById('credits-input').focus(), 50);
+  }
+
+  function setCreditsMode(mode) {
+    creditsMode = mode;
+    document.getElementById('credits-modal-title').textContent = mode === 'set' ? 'Set Credits' : 'Add Credits';
+    document.getElementById('credits-input').placeholder = mode === 'set' ? 'Absolute amount' : 'Amount to add';
+    document.getElementById('mode-btn-set').classList.toggle('active', mode === 'set');
+    document.getElementById('mode-btn-add').classList.toggle('active', mode === 'add');
   }
 
   function closeModal() {
@@ -410,21 +446,57 @@
   }
 
   async function saveCredits() {
-    const credits = parseInt(document.getElementById('credits-input').value, 10);
-    if (isNaN(credits) || credits < 0) return;
+    const val = parseInt(document.getElementById('credits-input').value, 10);
+    if (isNaN(val) || val < 0) return;
     try {
-      await fetch(`${API}/api/admin/users/${editingUserId}/credits`, {
+      const isAdd = creditsMode === 'add';
+      const r = await fetch(`${API}/api/admin/users/${editingUserId}/${isAdd ? 'add-credits' : 'credits'}`, {
         method: 'POST',
         headers: { 'x-admin-secret': secret, 'content-type': 'application/json' },
-        body: JSON.stringify({ credits })
+        body: JSON.stringify(isAdd ? { amount: val } : { credits: val })
       });
+      const data = await r.json();
       const user = allUsers.find(u => u.id === editingUserId);
-      if (user) user.credits = credits;
+      if (user) user.credits = data.credits;
       closeModal();
       renderStats();
       renderTable();
       showToast('Credits updated', 'green');
     } catch { showToast('Failed', 'red'); }
+  }
+
+  async function resetPassword(id, email) {
+    if (!confirm(`Send password reset email to ${email}?`)) return;
+    try {
+      const r = await fetch(`${API}/api/admin/users/${id}/password-reset`, {
+        method: 'POST', headers: { 'x-admin-secret': secret }
+      });
+      if (!r.ok) throw new Error();
+      showToast('Reset email sent', 'green');
+    } catch { showToast('Failed to send reset email', 'red'); }
+  }
+
+  async function resetAnalyses(id, email, current) {
+    if (current === 0) { showToast('Already at 0', 'green'); return; }
+    if (!confirm(`Reset free analyses counter for ${email}?`)) return;
+    try {
+      await fetch(`${API}/api/admin/users/${id}/reset-analyses`, {
+        method: 'POST', headers: { 'x-admin-secret': secret }
+      });
+      const user = allUsers.find(u => u.id === id);
+      if (user) user.free_analyses_used = 0;
+      renderTable();
+      showToast('Free analyses reset', 'green');
+    } catch { showToast('Failed', 'red'); }
+  }
+
+  function sortBy(col) {
+    if (sortColumn === col) { sortDir *= -1; }
+    else { sortColumn = col; sortDir = 1; }
+    document.querySelectorAll('.sort-ind').forEach(el => el.textContent = '');
+    const ind = document.getElementById(`sort-${col}`);
+    if (ind) ind.textContent = sortDir === 1 ? ' ▲' : ' ▼';
+    renderTable();
   }
 
   async function deleteUser(id, email) {

@@ -313,7 +313,7 @@ const requireAdmin = (req: any, res: any, next: any) => {
 app.get('/api/admin/users', requireAdmin, async (_req, res) => {
   try {
     const { data: authUsers } = await supabase.auth.admin.listUsers({ perPage: 1000 });
-    const { data: profiles }  = await supabase.from('profiles').select('id, is_pro, free_analyses_used, credits, created_at');
+    const { data: profiles }  = await supabase.from('profiles').select('id, is_pro, free_analyses_used, credits, created_at, stripe_customer_id');
     const { data: analyses }  = await supabase.from('analyses').select('user_id');
 
     const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p]));
@@ -331,6 +331,7 @@ app.get('/api/admin/users', requireAdmin, async (_req, res) => {
       credits:         profileMap[u.id]?.credits || 0,
       free_analyses_used: profileMap[u.id]?.free_analyses_used || 0,
       total_analyses:  analysisCounts[u.id] || 0,
+      stripe_customer_id: profileMap[u.id]?.stripe_customer_id || null,
     }));
 
     res.json({ users, total: users.length });
@@ -374,6 +375,50 @@ app.delete('/api/admin/users/:id', requireAdmin, async (req, res) => {
     await supabase.from('profiles').delete().eq('id', id);
     await supabase.auth.admin.deleteUser(id);
     res.json({ success: true });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Admin: password reset ────────────────────────────────────────────────────
+app.post('/api/admin/users/:id/password-reset', requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { data: { user }, error } = await supabase.auth.admin.getUserById(id);
+    if (error || !user?.email) return res.status(404).json({ error: 'User not found' });
+    const { error: linkErr } = await supabase.auth.admin.generateLink({
+      type: 'recovery',
+      email: user.email,
+    });
+    if (linkErr) throw linkErr;
+    res.json({ success: true });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Admin: reset free analyses counter ──────────────────────────────────────
+app.post('/api/admin/users/:id/reset-analyses', requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    await supabase.from('profiles').update({ free_analyses_used: 0 }).eq('id', id);
+    res.json({ success: true });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Admin: add credits (incremental) ────────────────────────────────────────
+app.post('/api/admin/users/:id/add-credits', requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { amount } = req.body;
+  if (typeof amount !== 'number' || amount <= 0)
+    return res.status(400).json({ error: 'Invalid amount' });
+  try {
+    const { data: profile } = await supabase.from('profiles').select('credits').eq('id', id).single();
+    const newCredits = (profile?.credits || 0) + amount;
+    await supabase.from('profiles').update({ credits: newCredits }).eq('id', id);
+    res.json({ credits: newCredits });
   } catch (e: any) {
     res.status(500).json({ error: e.message });
   }
