@@ -219,22 +219,22 @@ app.post('/api/revenuecat/webhook', async (req, res) => {
     switch (event.type) {
       case 'INITIAL_PURCHASE':
       case 'RENEWAL': {
+        // Only subscriptions fire INITIAL_PURCHASE/RENEWAL — set pro status only.
+        // Consumables (NON_RENEWING_PURCHASE) are handled below with idempotency.
         const entitlements: string[] = event.entitlement_ids || [];
         if (entitlements.includes('pro')) {
           await supabase.from('profiles').update({ is_pro: true }).eq('id', appUserId);
-        } else {
-          // Consumable purchase — add credits based on product ID
-          const creditsToAdd = event.product_id === 'com.contractshield.credits.10' ? 10 : 1;
-          const { data: p } = await supabase.from('profiles').select('credits').eq('id', appUserId).single();
-          const { error: e1 } = await supabase.from('profiles').update({ credits: (p?.credits || 0) + creditsToAdd }).eq('id', appUserId);
-          console.log(`[webhook] INITIAL/RENEWAL credits update: +${creditsToAdd} → ${(p?.credits || 0) + creditsToAdd} | error: ${e1?.message}`);
         }
         break;
       }
       case 'NON_SUBSCRIPTION_PURCHASE':
       case 'NON_RENEWING_PURCHASE': {
         const creditsToAdd = event.product_id === 'com.contractshield.credits.10' ? 10 : 1;
-        const txId = event.store_transaction_id || event.id;
+        // Use store_transaction_id (Apple TX ID) as the idempotency key.
+        // Fall back to a deterministic key from purchase data — never event.id,
+        // which is unique per delivery and would let retries bypass idempotency.
+        const txId = event.store_transaction_id
+          || `${appUserId}:${event.product_id}:${event.purchase_date}`;
         const { data: p } = await supabase.from('profiles').select('credits, credited_transaction_ids').eq('id', appUserId).single();
         console.log(`[webhook] NON_SUB txId=${txId} currentCredits=${p?.credits} alreadyCredited=${p?.credited_transaction_ids?.includes(txId)}`);
         if (p?.credited_transaction_ids?.includes(txId)) {
