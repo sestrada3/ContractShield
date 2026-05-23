@@ -304,29 +304,18 @@ app.post('/api/credits/add', requireAuth, async (req: any, res) => {
 
     const newCredits = (profile?.credits || 0) + creditsToAdd;
 
+    // Update credits and record the transaction ID in a single write so there
+    // is no window where the webhook can read the profile, miss the txId, and
+    // double-count the same purchase.
     const { error: creditsError } = await supabase
       .from('profiles')
-      .update({ credits: newCredits })
+      .update({
+        credits: newCredits,
+        credited_transaction_ids: [...(profile?.credited_transaction_ids || []), transactionId],
+      })
       .eq('id', userId);
 
     if (creditsError) throw new Error(`credits update failed: ${creditsError.message}`);
-
-    // Verify the write actually landed by reading back.
-    const { data: verify, error: verifyError } = await supabase
-      .from('profiles')
-      .select('credits')
-      .eq('id', userId)
-      .single();
-
-    if (verifyError) throw new Error(`verify read failed: ${verifyError.message}`);
-    if ((verify?.credits ?? -1) !== newCredits) {
-      throw new Error(`credits mismatch after update: expected ${newCredits}, got ${verify?.credits}`);
-    }
-
-    // Best-effort: record transaction ID for idempotency.
-    await supabase.from('profiles').update({
-      credited_transaction_ids: [...(profile?.credited_transaction_ids || []), transactionId],
-    }).eq('id', userId);
 
     res.json({ credits: newCredits });
   } catch (e: any) {
