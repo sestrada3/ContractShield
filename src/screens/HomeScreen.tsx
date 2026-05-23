@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  TextInput, ActivityIndicator, Alert, Image, Animated, InteractionManager,
+  TextInput, ActivityIndicator, Alert, Image, Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -152,31 +152,25 @@ export default function HomeScreen() {
         pdfBase64: pdfBase64 || undefined,
       });
       if (cancelled.current) return;
+
+      // Update credits now — the server already decremented before responding.
+      // Do this before navigation so the store is correct the moment the user
+      // returns to this screen.
+      if (!isPro) {
+        clearFloor();
+        if (credits > 0) {
+          setUsage(freeUsed, freeLimit, credits - 1);
+        } else {
+          setUsage(freeUsed + 1, freeLimit);
+        }
+      }
+
       setResult(result);
       setText('');
       setImageData(null);
       setPdfBase64(null);
       setFileName('');
       navigation.navigate('Results');
-      // Defer store updates + server refresh until after the navigation animation
-      // completes — avoids UI jank on the HomeScreen when returning from Results.
-      InteractionManager.runAfterInteractions(() => {
-        if (!isPro) {
-          // Analysis takes 10-30s — the purchase webhook has long since updated the
-          // DB by now, so the credit floor is no longer needed. Clear it first so
-          // the deduction isn't blocked by a floor set during a preceding purchase.
-          clearFloor();
-          if (credits > 0) {
-            setUsage(freeUsed, freeLimit, credits - 1);
-          } else {
-            setUsage(freeUsed + 1, freeLimit);
-          }
-        }
-        getUsage().then(u => {
-          setIsPro(u.isPro);
-          setUsage(u.used, u.limit, u.credits);
-        }).catch(() => {});
-      });
     } catch (e: any) {
       if (cancelled.current) return;
       const status = e?.response?.status;
