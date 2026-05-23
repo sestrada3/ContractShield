@@ -301,30 +301,35 @@ app.post('/api/credits/add', requireAuth, async (req: any, res) => {
     }
 
     const newCredits = (profile?.credits || 0) + creditsToAdd;
+    console.log(`[credits/add] userId=${userId} product=${productId} tx=${transactionId} currentCredits=${profile?.credits} newCredits=${newCredits}`);
 
-    // Use select() so the response includes the written row — this lets us
-    // detect silent 0-row updates (e.g. profile row missing) rather than
-    // returning a computed value that was never actually persisted.
-    const { data: updated, error: creditsError } = await supabase
+    const { error: creditsError } = await supabase
       .from('profiles')
       .update({ credits: newCredits })
-      .eq('id', userId)
+      .eq('id', userId);
+
+    if (creditsError) throw new Error(`credits update failed: ${creditsError.message}`);
+
+    // Verify the write actually landed by reading back.
+    const { data: verify, error: verifyError } = await supabase
+      .from('profiles')
       .select('credits')
+      .eq('id', userId)
       .single();
 
-    if (creditsError || !updated) {
-      // update() with .select().single() errors if 0 rows matched — meaning
-      // the profile row doesn't exist. Throw so the client keeps its floor.
-      throw new Error(creditsError?.message || 'Profile row not found — credits not written');
+    console.log(`[credits/add] verify read: credits=${verify?.credits} verifyError=${verifyError?.message}`);
+
+    if (verifyError) throw new Error(`verify read failed: ${verifyError.message}`);
+    if ((verify?.credits ?? -1) !== newCredits) {
+      throw new Error(`credits mismatch after update: expected ${newCredits}, got ${verify?.credits}`);
     }
 
-    // Best-effort: record transaction ID for idempotency (requires migration).
-    // Failure here is non-fatal — credits are already updated above.
+    // Best-effort: record transaction ID for idempotency.
     await supabase.from('profiles').update({
       credited_transaction_ids: [...(profile?.credited_transaction_ids || []), transactionId],
     }).eq('id', userId);
 
-    res.json({ credits: updated.credits });
+    res.json({ credits: newCredits });
   } catch (e: any) {
     console.error('Credits add error:', e.message);
     res.status(500).json({ error: 'Could not add credits.' });
