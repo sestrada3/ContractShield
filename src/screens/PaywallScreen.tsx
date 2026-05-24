@@ -105,13 +105,32 @@ export default function PaywallScreen() {
     try {
       const { customerInfo } = await Purchases.purchasePackage(activePkg);
       const isPro = !!customerInfo.entitlements.active['pro'];
-      await syncPurchase();
-      const usage = await getUsage();
-      setIsPro(isPro || usage.isPro);
-      setUsage(usage.used, usage.limit, usage.credits);
+      // Update store immediately from RevenueCat so the account screen reflects
+      // the new plan even if the server sync below fails.
+      setIsPro(isPro);
+      try {
+        await syncPurchase();
+        const usage = await getUsage();
+        setIsPro(isPro || usage.isPro);
+        setUsage(usage.used, usage.limit, usage.credits);
+      } catch {}
       navigation.goBack();
     } catch (e: any) {
       if (e?.code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR) return;
+      if (e?.code === PURCHASES_ERROR_CODE.PRODUCT_ALREADY_PURCHASED_ERROR) {
+        // RevenueCat already has this subscription active but our DB is stale.
+        // Sync Supabase and update the store so the account screen shows PRO.
+        try {
+          await syncPurchase();
+          const usage = await getUsage();
+          setIsPro(true);
+          setUsage(usage.used, usage.limit, usage.credits);
+        } catch {
+          setIsPro(true);
+        }
+        navigation.goBack();
+        return;
+      }
       Alert.alert('Purchase Error', e?.message || 'Could not complete purchase. Please try again.');
     } finally {
       setLoading(null);
