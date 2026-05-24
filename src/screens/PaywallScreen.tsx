@@ -122,7 +122,10 @@ export default function PaywallScreen() {
       // the user tapping OK on Apple's "You're already subscribed" sheet, which
       // is indistinguishable from a real cancel at the error-code level.
       try {
-        const current = await Purchases.getCustomerInfo();
+        // restorePurchases() re-validates the receipt with Apple directly and
+        // creates/updates the RC subscriber record — more reliable than
+        // getCustomerInfo() which fails if RC has no record for this user.
+        const current = await Purchases.restorePurchases();
         if (current.entitlements.active['pro']) {
           setIsProFloor();
           setIsPro(true);
