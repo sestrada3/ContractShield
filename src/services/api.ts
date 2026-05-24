@@ -53,10 +53,14 @@ export async function getHistory(): Promise<{ id: string; result: any; created_a
 }
 
 // ── RevenueCat: sync entitlement after purchase ──────────────────────────────
-export async function syncPurchase(): Promise<void> {
+// rcIsPro: pass true when the RC SDK already confirmed the entitlement so the
+// server can write is_pro:true even if the RC API hasn't caught up yet (common
+// in sandbox where there is a short processing lag).
+export async function syncPurchase(rcIsPro?: boolean): Promise<void> {
   const res = await fetch(`${BASE_URL}/api/revenuecat/sync`, {
     method: 'POST',
     headers: await authHeaders(),
+    body: JSON.stringify({ rcIsPro }),
   });
   if (!res.ok) throw new Error('Could not sync purchase');
 }

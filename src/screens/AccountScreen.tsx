@@ -147,10 +147,18 @@ export default function AccountScreen() {
           </View>
 
           {isPro ? (
-            <View style={s.row}>
-              <Text style={s.rowLabel}>Analyses</Text>
-              <Text style={s.rowValue}>Unlimited</Text>
-            </View>
+            <>
+              <View style={s.row}>
+                <Text style={s.rowLabel}>Analyses</Text>
+                <Text style={s.rowValue}>Unlimited</Text>
+              </View>
+              {credits > 0 && (
+                <View style={s.row}>
+                  <Text style={s.rowLabel}>Banked credits</Text>
+                  <Text style={[s.rowValue, { color: C.gold }]}>{credits} saved · active after Pro</Text>
+                </View>
+              )}
+            </>
           ) : (
             <>
               {credits > 0 && (

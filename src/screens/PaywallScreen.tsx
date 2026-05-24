@@ -104,33 +104,25 @@ export default function PaywallScreen() {
     setLoading('sub');
     try {
       const { customerInfo } = await Purchases.purchasePackage(activePkg);
-      const isPro = !!customerInfo.entitlements.active['pro'];
-      // Set a floor so stale server responses can't downgrade pro status
-      // while RevenueCat propagates the purchase to its subscriber API.
-      if (isPro) setIsProFloor();
-      setIsPro(isPro);
+      const rcIsPro = !!customerInfo.entitlements.active['ContractShield AI Pro'];
+      if (rcIsPro) setIsProFloor();
+      setIsPro(rcIsPro);
       try {
-        await syncPurchase();
+        await syncPurchase(rcIsPro);
         const usage = await getUsage();
-        setIsPro(isPro || usage.isPro);
+        setIsPro(rcIsPro || usage.isPro);
         setUsage(usage.used, usage.limit, usage.credits);
       } catch {}
       navigation.goBack();
     } catch (e: any) {
       const cancelled = e?.code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR;
-      // Always check real subscription state — a "cancellation" may actually be
-      // the user tapping OK on Apple's "You're already subscribed" sheet, which
-      // is indistinguishable from a real cancel at the error-code level.
       try {
-        // restorePurchases() re-validates the receipt with Apple directly and
-        // creates/updates the RC subscriber record — more reliable than
-        // getCustomerInfo() which fails if RC has no record for this user.
         const current = await Purchases.restorePurchases();
-        if (current.entitlements.active['pro']) {
+        if (current.entitlements.active['ContractShield AI Pro']) {
           setIsProFloor();
           setIsPro(true);
           try {
-            await syncPurchase();
+            await syncPurchase(true);
             const usage = await getUsage();
             setUsage(usage.used, usage.limit, usage.credits);
           } catch {}
@@ -159,30 +151,17 @@ export default function PaywallScreen() {
       const creditsToAdd = productId === PRODUCT_CREDIT_10 ? 10 : 1;
       const newCredits = credits + creditsToAdd;
 
-      // Optimistic update so the UI reflects the purchase immediately.
+      // Optimistic update.
       setCreditFloor(newCredits);
       setUsage(freeUsed, freeLimit, newCredits);
 
-      // Update the server now — don't wait for the async RevenueCat webhook.
-      // The Apple transaction ID is the idempotency key so the webhook can't
-      // double-count if it also fires later.
+      // Write to DB immediately. Awaiting this before goBack() means the DB
+      // is updated before AccountScreen's useFocusEffect calls getUsage().
       const tx = [...customerInfo.nonSubscriptionTransactions]
         .filter(t => t.productIdentifier === productId)
         .sort((a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime())[0];
       const transactionId = tx?.transactionIdentifier ?? `${productId}_${Date.now()}`;
-
-      // Await the server update before navigating back so the DB is written
-      // before HomeScreen's useFocusEffect calls getUsage(). We do NOT call
-      // setUsage() here — the credit floor already shows the right optimistic
-      // value, and clearing it here based on addCredits' response (which can
-      // lie if the UPDATE silently hit 0 rows) is what caused credits to drop
-      // to 0 on every screen focus. Let useFocusEffect's getUsage() clear the
-      // floor once it actually reads the confirmed value from the DB.
-      try {
-        await addCredits(productId, transactionId);
-      } catch {
-        // Best-effort — webhook is the primary credit path
-      }
+      try { await addCredits(productId, transactionId); } catch {}
 
       navigation.goBack();
     } catch (e: any) {

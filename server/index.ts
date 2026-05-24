@@ -218,27 +218,18 @@ app.post('/api/revenuecat/webhook', async (req, res) => {
         // Only subscriptions fire INITIAL_PURCHASE/RENEWAL — set pro status only.
         // Consumables (NON_RENEWING_PURCHASE) are handled below with idempotency.
         const entitlements: string[] = event.entitlement_ids || [];
-        if (entitlements.includes('pro')) {
+        if (entitlements.includes('ContractShield AI Pro')) {
           await supabase.from('profiles').update({ is_pro: true }).eq('id', appUserId);
         }
         break;
       }
       case 'NON_SUBSCRIPTION_PURCHASE':
-      case 'NON_RENEWING_PURCHASE': {
-        const creditsToAdd = event.product_id === 'com.contractshield.credits.10' ? 10 : 1;
-        // Use store_transaction_id (Apple TX ID) as the idempotency key.
-        // Fall back to a deterministic key from purchase data — never event.id,
-        // which is unique per delivery and would let retries bypass idempotency.
-        const txId = event.store_transaction_id
-          || `${appUserId}:${event.product_id}:${event.purchase_date}`;
-        const { data: p } = await supabase.from('profiles').select('credits, credited_transaction_ids').eq('id', appUserId).single();
-        if (p?.credited_transaction_ids?.includes(txId)) break;
-        await supabase.from('profiles').update({
-          credits: (p?.credits || 0) + creditsToAdd,
-          credited_transaction_ids: [...(p?.credited_transaction_ids || []), txId],
-        }).eq('id', appUserId);
+      case 'NON_RENEWING_PURCHASE':
+        // Credits are written immediately by the client via /api/credits/add.
+        // The webhook txId (store_transaction_id) and the client txId
+        // (transactionIdentifier) can differ in sandbox, causing double-credits
+        // when both paths write. The client call is the single source of truth.
         break;
-      }
       case 'EXPIRATION':
       case 'BILLING_ISSUE':
         await supabase.from('profiles').update({ is_pro: false }).eq('id', appUserId);
@@ -255,22 +246,31 @@ app.post('/api/revenuecat/webhook', async (req, res) => {
 // ── RevenueCat: sync after purchase ─────────────────────────────────────────
 // Called by the client immediately after a purchase to update is_pro without
 // waiting for the webhook. Credits are added by the webhook to avoid double-counting.
+// rcIsPro: client passes true when the RC SDK already confirmed the entitlement.
+// The RC API can lag behind the SDK (especially in sandbox), so we trust the
+// SDK result rather than potentially writing is_pro:false and breaking the UX.
+// We never demote is_pro to false here — that is the webhook's job.
 app.post('/api/revenuecat/sync', requireAuth, async (req: any, res) => {
   const userId = req.user.id;
+  const { rcIsPro } = req.body; // optional assertion from RC SDK
   try {
     const rcRes = await fetch(`https://api.revenuecat.com/v1/subscribers/${userId}`, {
       headers: { Authorization: `Bearer ${process.env.REVENUECAT_SECRET_KEY}` },
     });
     if (!rcRes.ok) throw new Error(`RevenueCat API error: ${rcRes.status}`);
 
-    const data: any     = await rcRes.json();
-    const subscriber    = data.subscriber;
-    const proEntitlement = subscriber?.entitlements?.pro;
-    const isPro = proEntitlement
+    const data: any      = await rcRes.json();
+    const subscriber     = data.subscriber;
+    const proEntitlement = subscriber?.entitlements?.['ContractShield AI Pro'];
+    const serverIsPro    = proEntitlement
       ? new Date(proEntitlement.expires_date) > new Date()
       : false;
 
-    await supabase.from('profiles').update({ is_pro: isPro }).eq('id', userId);
+    // Trust RC SDK assertion if the server API hasn't caught up yet.
+    const isPro = serverIsPro || rcIsPro === true;
+    if (isPro) {
+      await supabase.from('profiles').update({ is_pro: true }).eq('id', userId);
+    }
     res.json({ isPro });
   } catch (e: any) {
     console.error('RevenueCat sync error:', e.message);

@@ -67,7 +67,6 @@ export default function HomeScreen() {
     useCallback(() => {
       getUsage()
         .then(u => {
-          clearFloor();
           setIsPro(u.isPro);
           setUsage(u.used, u.limit, u.credits);
         })
