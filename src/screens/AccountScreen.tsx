@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import * as Haptics from 'expo-haptics';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import Purchases from 'react-native-purchases';
 import { useStore } from '../services/store';
 import { getHistory, deleteAccount, getUsage, setAuthToken } from '../services/api';
 import { signOut } from '../services/auth';
@@ -45,9 +46,11 @@ export default function AccountScreen() {
   const navigation = useNavigation<any>();
   const { user, isPro, freeUsed, freeLimit, credits, setUser, setIsPro, setUsage, setResult } = useStore();
 
-  const [history, setHistory]           = useState<{ id: string; result: any; created_at: string }[]>([]);
-  const [loadingHistory, setLoadingHistory] = useState(true);
-  const [loadingDelete, setLoadingDelete]   = useState(false);
+  const [history, setHistory]               = useState<{ id: string; result: any; created_at: string }[]>([]);
+  const [loadingHistory, setLoadingHistory]   = useState(true);
+  const [loadingDelete, setLoadingDelete]     = useState(false);
+  const [subscriptionType, setSubscriptionType] = useState<'monthly' | 'yearly' | null>(null);
+  const [renewalDate, setRenewalDate]         = useState<string | null>(null);
 
   const email       = user?.email ?? '';
   const initials    = email.slice(0, 2).toUpperCase();
@@ -60,6 +63,25 @@ export default function AccountScreen() {
       getUsage()
         .then(u => { setIsPro(u.isPro); setUsage(u.used, u.limit, u.credits); })
         .catch(() => {});
+      Purchases.getCustomerInfo()
+        .then(info => {
+          const entitlement = info.entitlements.active['ContractShield AI Pro'];
+          if (entitlement) {
+            const id = entitlement.productIdentifier.toLowerCase();
+            setSubscriptionType(
+              id.includes('annual') || id.includes('yearly') || id.includes('year') ? 'yearly' : 'monthly'
+            );
+            if (entitlement.expirationDate) {
+              setRenewalDate(new Date(entitlement.expirationDate).toLocaleDateString('en-US', {
+                month: 'short', day: 'numeric', year: 'numeric',
+              }));
+            }
+          } else {
+            setSubscriptionType(null);
+            setRenewalDate(null);
+          }
+        })
+        .catch(() => {});
       setLoadingHistory(true);
       getHistory()
         .then(setHistory)
@@ -67,6 +89,16 @@ export default function AccountScreen() {
         .finally(() => setLoadingHistory(false));
     }, [])
   );
+
+  // Computed usage stats from history
+  const validScores = history
+    .filter(h => h.result?.score != null)
+    .map(h => parseFloat(String(h.result.score)));
+  const avgScore = validScores.length > 0
+    ? (validScores.reduce((sum, n) => sum + n, 0) / validScores.length).toFixed(1)
+    : null;
+  const avgScoreNum = avgScore ? parseFloat(avgScore) : null;
+  const avgScoreColor = avgScoreNum == null ? C.td : avgScoreNum >= 7 ? C.green : avgScoreNum >= 4 ? C.amber : C.red;
 
   const openHistoryResult = (item: { id: string; result: any; created_at: string }) => {
     if (!item.result) return;
@@ -141,16 +173,26 @@ export default function AccountScreen() {
             <Text style={s.rowLabel}>Plan</Text>
             <View style={[s.badge, isPro ? s.badgePro : s.badgeFree]}>
               <Text style={[s.badgeText, isPro ? s.badgeTextPro : s.badgeTextFree]}>
-                {isPro ? '✦  PRO' : 'FREE'}
+                {isPro
+                  ? `✦  PRO${subscriptionType ? ` · ${subscriptionType.toUpperCase()}` : ''}`
+                  : 'FREE'}
               </Text>
             </View>
           </View>
 
           {isPro ? (
             <>
+              {renewalDate && (
+                <View style={s.row}>
+                  <Text style={s.rowLabel}>Renews</Text>
+                  <Text style={s.rowValue}>{renewalDate}</Text>
+                </View>
+              )}
               <View style={s.row}>
                 <Text style={s.rowLabel}>Analyses</Text>
-                <Text style={s.rowValue}>Unlimited</Text>
+                <Text style={s.rowValue}>
+                  {subscriptionType ? `Unlimited / ${subscriptionType === 'yearly' ? 'year' : 'month'}` : 'Unlimited'}
+                </Text>
               </View>
               {credits > 0 && (
                 <View style={s.row}>
@@ -169,7 +211,7 @@ export default function AccountScreen() {
               )}
               <View style={s.row}>
                 <Text style={s.rowLabel}>Free analyses</Text>
-                <Text style={s.rowValue}>{Math.max(0, freeLimit - freeUsed)} of {freeLimit} used</Text>
+                <Text style={s.rowValue}>{Math.max(0, freeLimit - freeUsed)} of {freeLimit} remaining</Text>
               </View>
             </>
           )}
@@ -177,10 +219,7 @@ export default function AccountScreen() {
           <View style={s.divider}/>
 
           {isPro ? (
-            <TouchableOpacity
-              style={s.outlineBtn}
-              onPress={handleManageSubscription}
-            >
+            <TouchableOpacity style={s.outlineBtn} onPress={handleManageSubscription}>
               <Text style={s.outlineBtnText}>Manage Subscription →</Text>
             </TouchableOpacity>
           ) : (
@@ -188,6 +227,58 @@ export default function AccountScreen() {
               <Text style={s.goldBtnText}>Upgrade to Pro →</Text>
             </TouchableOpacity>
           )}
+        </View>
+
+        {/* Usage stats */}
+        <Text style={s.sectionLabel}>USAGE</Text>
+        <View style={s.card}>
+          {loadingHistory ? (
+            <View style={s.statsRow}>
+              {[0, 1, 2].map(i => (
+                <View key={i} style={[s.statBox, i > 0 && s.statBorderLeft]}>
+                  <View style={{ width: 40, height: 28, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 6, marginBottom: 6 }}/>
+                  <View style={{ width: 56, height: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 4 }}/>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View style={s.statsRow}>
+              <View style={s.statBox}>
+                <Text style={s.statVal}>{history.length}</Text>
+                <Text style={s.statLabel}>Analyzed</Text>
+              </View>
+              <View style={[s.statBox, s.statBorderLeft]}>
+                <Text style={s.statVal}>{isPro ? '∞' : Math.max(0, freeLimit - freeUsed)}</Text>
+                <Text style={s.statLabel}>{isPro ? 'Unlimited' : 'Remaining'}</Text>
+              </View>
+              <View style={[s.statBox, s.statBorderLeft]}>
+                <Text style={[s.statVal, { color: avgScoreColor }]}>{avgScore ?? '—'}</Text>
+                <Text style={s.statLabel}>Avg Score</Text>
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* Security & Privacy */}
+        <Text style={s.sectionLabel}>SECURITY & PRIVACY</Text>
+        <View style={s.card}>
+          <View style={s.row}>
+            <View style={{ flex: 1 }}>
+              <Text style={s.rowLabel}>Auto-Delete Contracts</Text>
+              <Text style={s.rowMeta}>Uploaded text deleted after analysis</Text>
+            </View>
+            <View style={s.onBadge}>
+              <Text style={s.onBadgeText}>ALWAYS ON</Text>
+            </View>
+          </View>
+          <View style={s.divider}/>
+          <TouchableOpacity
+            style={s.row}
+            onPress={() => WebBrowser.openBrowserAsync('https://getcontractshield.app/privacy.html')}
+          >
+            <Text style={s.rowLabel}>Privacy Policy</Text>
+            <Ionicons name="chevron-forward" size={14} color={C.td}/>
+          </TouchableOpacity>
         </View>
 
         {/* Analysis history */}
@@ -265,14 +356,6 @@ export default function AccountScreen() {
           <View style={s.divider}/>
           <TouchableOpacity
             style={s.row}
-            onPress={() => WebBrowser.openBrowserAsync('https://getcontractshield.app/privacy.html')}
-          >
-            <Text style={s.rowLabel}>Privacy Policy</Text>
-            <Ionicons name="chevron-forward" size={14} color={C.td}/>
-          </TouchableOpacity>
-          <View style={s.divider}/>
-          <TouchableOpacity
-            style={s.row}
             onPress={() => WebBrowser.openBrowserAsync('https://getcontractshield.app/terms.html')}
           >
             <Text style={s.rowLabel}>Terms of Service</Text>
@@ -309,6 +392,7 @@ const s = StyleSheet.create({
   row:            { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 },
   rowLabel:       { fontSize: 14, color: C.t },
   rowValue:       { fontSize: 14, color: C.tm, fontWeight: '600' },
+  rowMeta:        { fontSize: 11, color: C.td, marginTop: 2 },
   divider:        { height: 1, backgroundColor: 'rgba(255,255,255,0.07)', marginVertical: 8 },
   badge:          { borderRadius: 6, paddingHorizontal: 9, paddingVertical: 4, borderWidth: 1 },
   badgePro:       { backgroundColor: 'rgba(201,168,76,0.12)', borderColor: 'rgba(201,168,76,0.35)' },
@@ -321,6 +405,16 @@ const s = StyleSheet.create({
   goldBtn:        { marginTop: 4, backgroundColor: C.gold, borderRadius: 10, padding: 14, alignItems: 'center' },
   goldBtnText:    { fontSize: 14, fontWeight: '700', color: '#0b0d12' },
   btnDisabled:    { opacity: 0.5 },
+  // Usage stats
+  statsRow:       { flexDirection: 'row', paddingVertical: 4 },
+  statBox:        { flex: 1, alignItems: 'center', paddingVertical: 8 },
+  statBorderLeft: { borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.07)' },
+  statVal:        { fontSize: 28, fontWeight: '800', color: C.t },
+  statLabel:      { fontSize: 10, color: C.td, textTransform: 'uppercase', letterSpacing: 0.8, marginTop: 3 },
+  // Security
+  onBadge:        { backgroundColor: 'rgba(76,175,125,0.15)', borderRadius: 6, paddingHorizontal: 9, paddingVertical: 4, borderWidth: 1, borderColor: 'rgba(76,175,125,0.3)' },
+  onBadgeText:    { fontSize: 10, fontWeight: '700', color: C.green, letterSpacing: 0.8 },
+  // History
   histRow:        { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
   histBorder:     { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
   histType:       { fontSize: 13, color: C.t, fontWeight: '600', marginBottom: 3 },

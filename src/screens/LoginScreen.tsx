@@ -4,6 +4,7 @@ import {
   StyleSheet, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { signInWithEmail, signUpWithEmail, resetPassword } from '../services/auth';
 import { setAuthToken } from '../services/api';
 import { useStore } from '../services/store';
@@ -11,12 +12,21 @@ import { C } from '../theme';
 
 type Mode = 'signin' | 'signup' | 'reset';
 
+const PWD_RULES = [
+  { label: 'At least 8 characters', test: (p: string) => p.length >= 8 },
+  { label: 'One uppercase letter',  test: (p: string) => /[A-Z]/.test(p) },
+  { label: 'One number',            test: (p: string) => /[0-9]/.test(p) },
+];
+
 export default function LoginScreen() {
   const { setUser } = useStore();
-  const [mode, setMode]       = useState<Mode>('signin');
-  const [email, setEmail]     = useState('');
-  const [password, setPass]   = useState('');
-  const [loading, setLoading] = useState(false);
+  const [mode, setMode]            = useState<Mode>('signin');
+  const [email, setEmail]          = useState('');
+  const [password, setPass]        = useState('');
+  const [showPassword, setShowPwd] = useState(false);
+  const [loading, setLoading]      = useState(false);
+
+  const passwordValid = PWD_RULES.every(r => r.test(password));
 
   const submit = async () => {
     if (!email.trim()) { Alert.alert('Enter your email'); return; }
@@ -34,8 +44,8 @@ export default function LoginScreen() {
       return;
     }
     if (!password) { Alert.alert('Enter your password'); return; }
-    if (mode === 'signup' && password.length < 6) {
-      Alert.alert('Password too short', 'Password must be at least 6 characters.');
+    if (mode === 'signup' && !passwordValid) {
+      Alert.alert('Weak password', 'Please meet all password requirements before continuing.');
       return;
     }
     setLoading(true);
@@ -97,16 +107,42 @@ export default function LoginScreen() {
 
             {mode !== 'reset' && (
               <>
-                <TextInput
-                  style={s.input}
-                  placeholder="Password"
-                  placeholderTextColor={C.td}
-                  value={password}
-                  onChangeText={setPass}
-                  secureTextEntry
-                />
-                {mode === 'signup' && (
-                  <Text style={s.hint}>Minimum 6 characters</Text>
+                <View style={s.pwdWrap}>
+                  <TextInput
+                    style={s.pwdInput}
+                    placeholder="Password"
+                    placeholderTextColor={C.td}
+                    value={password}
+                    onChangeText={setPass}
+                    secureTextEntry={!showPassword}
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                  />
+                  <TouchableOpacity onPress={() => setShowPwd(v => !v)} style={s.eyeBtn}>
+                    <Ionicons
+                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                      size={18}
+                      color={C.td}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                {mode === 'signup' && password.length > 0 && (
+                  <View style={s.rules}>
+                    {PWD_RULES.map(r => {
+                      const ok = r.test(password);
+                      return (
+                        <View key={r.label} style={s.ruleRow}>
+                          <Ionicons
+                            name={ok ? 'checkmark-circle' : 'ellipse-outline'}
+                            size={13}
+                            color={ok ? C.green : C.td}
+                          />
+                          <Text style={[s.ruleText, { color: ok ? C.green : C.td }]}>{r.label}</Text>
+                        </View>
+                      );
+                    })}
+                  </View>
                 )}
               </>
             )}
@@ -152,10 +188,15 @@ const s = StyleSheet.create({
   card:       { width: '100%', backgroundColor: C.surf, borderRadius: 16, padding: 24, gap: 12 },
   cardTitle:  { fontSize: 18, fontWeight: '700', color: C.t, marginBottom: 4 },
   input:      { backgroundColor: '#0b0d12', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: 14, color: C.t, fontSize: 14 },
+  pwdWrap:    { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0b0d12', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', borderRadius: 10 },
+  pwdInput:   { flex: 1, padding: 14, color: C.t, fontSize: 14 },
+  eyeBtn:     { padding: 14 },
+  rules:      { gap: 6, paddingHorizontal: 2 },
+  ruleRow:    { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  ruleText:   { fontSize: 12 },
   forgotRow:  { alignSelf: 'flex-end', marginTop: -4 },
   forgotText: { fontSize: 12, color: C.gold },
   btn:        { backgroundColor: C.gold, borderRadius: 10, padding: 16, alignItems: 'center', marginTop: 4 },
   btnText:    { fontSize: 15, fontWeight: '700', color: '#0b0d12' },
   toggle:     { textAlign: 'center', fontSize: 13, color: C.tm, marginTop: 4 },
-  hint:       { fontSize: 11, color: C.td, marginTop: -4 },
 });

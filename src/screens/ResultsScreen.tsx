@@ -268,7 +268,7 @@ export default function ResultsScreen() {
         {/* Bottom CTA */}
         <TouchableOpacity
           style={rs.analyzeAnotherBtn}
-          onPress={() => { clearResult(); navigation.goBack(); }}
+          onPress={() => { clearResult(); navigation.popToTop(); }}
         >
           <Ionicons name="add-circle-outline" size={16} color={C.gold}/>
           <Text style={rs.analyzeAnotherText}>Analyze Another Document</Text>
