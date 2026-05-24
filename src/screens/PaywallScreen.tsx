@@ -118,19 +118,23 @@ export default function PaywallScreen() {
       navigation.goBack();
     } catch (e: any) {
       if (e?.code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR) return;
-      if (e?.code === PURCHASES_ERROR_CODE.PRODUCT_ALREADY_PURCHASED_ERROR) {
-        // RevenueCat already has this subscription active but our DB is stale.
-        // Floor prevents the stale getUsage() response from downgrading the store.
-        setIsProFloor();
-        setIsPro(true);
-        try {
-          await syncPurchase();
-          const usage = await getUsage();
-          setUsage(usage.used, usage.limit, usage.credits);
-        } catch {}
-        navigation.goBack();
-        return;
-      }
+      // For any non-cancellation error, check the actual current subscription
+      // state rather than pattern-matching error codes. RevenueCat may return
+      // different codes for "already subscribed" across SDK versions and iOS versions.
+      try {
+        const current = await Purchases.getCustomerInfo();
+        if (current.entitlements.active['pro']) {
+          setIsProFloor();
+          setIsPro(true);
+          try {
+            await syncPurchase();
+            const usage = await getUsage();
+            setUsage(usage.used, usage.limit, usage.credits);
+          } catch {}
+          navigation.goBack();
+          return;
+        }
+      } catch {}
       Alert.alert('Purchase Error', e?.message || 'Could not complete purchase. Please try again.');
     } finally {
       setLoading(null);
