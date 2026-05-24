@@ -58,7 +58,7 @@ type Tab = 'plans' | 'payg';
 
 export default function PaywallScreen() {
   const navigation = useNavigation<any>();
-  const { setIsPro, setUsage, setCreditFloor, freeUsed, freeLimit, credits } = useStore();
+  const { setIsPro, setIsProFloor, setUsage, setCreditFloor, freeUsed, freeLimit, credits } = useStore();
 
   const [tab, setTab]   = useState<Tab>('plans');
   const [plan, setPlan] = useState<'monthly' | 'yearly'>('yearly');
@@ -105,8 +105,9 @@ export default function PaywallScreen() {
     try {
       const { customerInfo } = await Purchases.purchasePackage(activePkg);
       const isPro = !!customerInfo.entitlements.active['pro'];
-      // Update store immediately from RevenueCat so the account screen reflects
-      // the new plan even if the server sync below fails.
+      // Set a floor so stale server responses can't downgrade pro status
+      // while RevenueCat propagates the purchase to its subscriber API.
+      if (isPro) setIsProFloor();
       setIsPro(isPro);
       try {
         await syncPurchase();
@@ -119,15 +120,14 @@ export default function PaywallScreen() {
       if (e?.code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR) return;
       if (e?.code === PURCHASES_ERROR_CODE.PRODUCT_ALREADY_PURCHASED_ERROR) {
         // RevenueCat already has this subscription active but our DB is stale.
-        // Sync Supabase and update the store so the account screen shows PRO.
+        // Floor prevents the stale getUsage() response from downgrading the store.
+        setIsProFloor();
+        setIsPro(true);
         try {
           await syncPurchase();
           const usage = await getUsage();
-          setIsPro(true);
           setUsage(usage.used, usage.limit, usage.credits);
-        } catch {
-          setIsPro(true);
-        }
+        } catch {}
         navigation.goBack();
         return;
       }

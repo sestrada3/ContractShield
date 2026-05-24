@@ -33,6 +33,8 @@ interface AppState {
   // Auth
   user: User | null;
   isPro: boolean;
+  isProFloor: boolean;
+  isProFloorExpiry: number;
   freeUsed: number;
   freeLimit: number;
   credits: number;
@@ -48,6 +50,7 @@ interface AppState {
   // Actions
   setUser: (user: User | null) => void;
   setIsPro: (isPro: boolean) => void;
+  setIsProFloor: () => void;
   setUsage: (used: number, limit: number, credits?: number) => void;
   setCreditFloor: (credits: number) => void;
   clearFloor: () => void;
@@ -60,6 +63,8 @@ interface AppState {
 export const useStore = create<AppState>((set) => ({
   user: null,
   isPro: false,
+  isProFloor: false,
+  isProFloorExpiry: 0,
   freeUsed: 0,
   freeLimit: 3,
   credits: 0,
@@ -71,7 +76,13 @@ export const useStore = create<AppState>((set) => ({
   error: null,
 
   setUser: (user) => set({ user }),
-  setIsPro: (isPro) => set({ isPro }),
+  setIsPro: (isPro) => set((s) => {
+    const floorActive = s.isProFloor && s.isProFloorExpiry > Date.now();
+    // Don't let a stale server response downgrade pro status during the floor window.
+    if (floorActive && !isPro) return {};
+    return { isPro };
+  }),
+  setIsProFloor: () => set({ isProFloor: true, isProFloorExpiry: Date.now() + 10 * 60_000 }),
   setUsage: (freeUsed, freeLimit, credits) => set((s) => {
     const base = { freeUsed, freeLimit };
     if (credits === undefined) return { ...base, credits: s.credits };
