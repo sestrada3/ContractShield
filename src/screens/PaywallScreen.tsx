@@ -117,10 +117,10 @@ export default function PaywallScreen() {
       } catch {}
       navigation.goBack();
     } catch (e: any) {
-      if (e?.code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR) return;
-      // For any non-cancellation error, check the actual current subscription
-      // state rather than pattern-matching error codes. RevenueCat may return
-      // different codes for "already subscribed" across SDK versions and iOS versions.
+      const cancelled = e?.code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR;
+      // Always check real subscription state — a "cancellation" may actually be
+      // the user tapping OK on Apple's "You're already subscribed" sheet, which
+      // is indistinguishable from a real cancel at the error-code level.
       try {
         const current = await Purchases.getCustomerInfo();
         if (current.entitlements.active['pro']) {
@@ -135,7 +135,9 @@ export default function PaywallScreen() {
           return;
         }
       } catch {}
-      Alert.alert('Purchase Error', e?.message || 'Could not complete purchase. Please try again.');
+      if (!cancelled) {
+        Alert.alert('Purchase Error', e?.message || 'Could not complete purchase. Please try again.');
+      }
     } finally {
       setLoading(null);
     }
