@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import Purchases, {
   PurchasesOfferings,
   PurchasesStoreProduct,
@@ -58,6 +58,8 @@ type Tab = 'plans' | 'payg';
 
 export default function PaywallScreen() {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
+  const contextMessage: string | null = route.params?.context ?? null;
   const { setIsPro, setIsProFloor, setUsage, setCreditFloor, freeUsed, freeLimit, credits } = useStore();
 
   const [tab, setTab]   = useState<Tab>('plans');
@@ -198,7 +200,14 @@ export default function PaywallScreen() {
             />
           </View>
           <Text style={s.heroTitle}>ContractShield Pro</Text>
-          <Text style={s.heroSub}>Know exactly what you're signing — and how to negotiate it.</Text>
+          {contextMessage ? (
+            <View style={s.contextBanner}>
+              <Ionicons name="alert-circle-outline" size={14} color={C.red}/>
+              <Text style={s.contextBannerText}>{contextMessage}</Text>
+            </View>
+          ) : (
+            <Text style={s.heroSub}>Know exactly what you're signing — and how to negotiate it.</Text>
+          )}
         </View>
 
         {/* Tab Switcher */}
@@ -395,8 +404,10 @@ const s = StyleSheet.create({
   hero:        { alignItems: 'center', marginBottom: 28 },
   heroIconWrap:{ width: 88, height: 88, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: 16, overflow: 'hidden' },
   heroLogo:    { width: 88, height: 88 },
-  heroTitle:   { fontSize: 26, fontWeight: '800', color: C.t, letterSpacing: -0.5 },
-  heroSub:     { fontSize: 14, color: C.tm, marginTop: 6, textAlign: 'center', lineHeight: 21, maxWidth: 280 },
+  heroTitle:       { fontSize: 26, fontWeight: '800', color: C.t, letterSpacing: -0.5 },
+  heroSub:         { fontSize: 14, color: C.tm, marginTop: 6, textAlign: 'center', lineHeight: 21, maxWidth: 280 },
+  contextBanner:   { flexDirection: 'row', alignItems: 'flex-start', gap: 7, marginTop: 12, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(224,82,82,0.3)', backgroundColor: 'rgba(224,82,82,0.08)', maxWidth: 300 },
+  contextBannerText: { flex: 1, fontSize: 13, color: C.red, lineHeight: 19 },
 
   tabRow:          { flexDirection: 'row', backgroundColor: C.surf, borderRadius: 12, padding: 4, marginBottom: 24 },
   tab:             { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 9 },

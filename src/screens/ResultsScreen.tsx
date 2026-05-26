@@ -85,6 +85,16 @@ function ClauseCard({ item, idx, startOpen }: { item: Clause; idx: number; start
   const r = riskOf(item.risk);
   const b = benchOf(item.standard || 'standard');
 
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 280,
+      delay: idx * 50,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
   const copyScript = async () => {
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     await Clipboard.setStringAsync(item.script || '');
@@ -93,6 +103,7 @@ function ClauseCard({ item, idx, startOpen }: { item: Clause; idx: number; start
   };
 
   return (
+    <Animated.View style={{ opacity: fadeAnim }}>
     <View style={[cs.card, { borderLeftColor: r.c }]}>
       <TouchableOpacity style={cs.cardHeader} onPress={() => { setOpen(o => !o); Haptics.selectionAsync(); }}>
         <Text style={cs.cardNum}>#{String(idx+1).padStart(2,'0')}</Text>
@@ -138,6 +149,7 @@ function ClauseCard({ item, idx, startOpen }: { item: Clause; idx: number; start
         </View>
       )}
     </View>
+    </Animated.View>
   );
 }
 
@@ -153,7 +165,7 @@ function DateCard({ item }: { item: KeyDate }) {
 
 export default function ResultsScreen() {
   const navigation = useNavigation<any>();
-  const { currentResult, clearResult } = useStore();
+  const { currentResult, clearResult, isPro } = useStore();
   const R = currentResult;
 
   if (!R) {
@@ -265,6 +277,24 @@ export default function ResultsScreen() {
           </View>
         )}
 
+        {/* Contextual upgrade banner — shown for non-pro users on high-risk contracts */}
+        {!isPro && score < 5 && (
+          <TouchableOpacity
+            style={rs.upgradeBanner}
+            onPress={() => navigation.navigate('Paywall', {
+              context: `This contract scored ${Math.round(score)}/10 — unlock negotiation scripts to push back on every risky clause.`,
+            })}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="shield-half-outline" size={22} color={C.red}/>
+            <View style={{ flex: 1 }}>
+              <Text style={rs.upgradeBannerTitle}>This contract scored {Math.round(score)}/10</Text>
+              <Text style={rs.upgradeBannerSub}>Unlock negotiation scripts for every risky clause →</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={C.red}/>
+          </TouchableOpacity>
+        )}
+
         {/* Bottom CTA */}
         <TouchableOpacity
           style={rs.analyzeAnotherBtn}
@@ -326,6 +356,9 @@ const rs = StyleSheet.create({
   sectionHeader:{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
   sectionTitle: { fontSize: 10, color: C.td, letterSpacing: 2, textTransform: 'uppercase' },
   positivesBox:       { backgroundColor: 'rgba(76,175,125,0.07)', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: 'rgba(76,175,125,0.18)' },
+  upgradeBanner:      { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12, padding: 16, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(224,82,82,0.3)', backgroundColor: 'rgba(224,82,82,0.08)' },
+  upgradeBannerTitle: { fontSize: 14, fontWeight: '700', color: C.red, marginBottom: 2 },
+  upgradeBannerSub:   { fontSize: 12, color: 'rgba(224,82,82,0.7)' },
   analyzeAnotherBtn:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8, marginBottom: 4, paddingVertical: 16, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(201,168,76,0.25)', backgroundColor: 'rgba(201,168,76,0.07)' },
   analyzeAnotherText: { fontSize: 14, fontWeight: '700', color: C.gold },
   disclaimer:         { textAlign: 'center', fontSize: 10, color: C.td, lineHeight: 16, marginTop: 12 },

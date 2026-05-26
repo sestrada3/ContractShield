@@ -267,9 +267,18 @@ export default function AccountScreen() {
               <Text style={s.rowLabel}>Auto-Delete Contracts</Text>
               <Text style={s.rowMeta}>Uploaded text deleted after analysis</Text>
             </View>
-            <View style={s.onBadge}>
-              <Text style={s.onBadgeText}>ALWAYS ON</Text>
-            </View>
+            <TouchableOpacity
+              onPress={() => Alert.alert(
+                'Always On',
+                'ContractShield never stores your contracts — uploaded text is permanently deleted after analysis. This cannot be disabled.',
+                [{ text: 'Got it' }]
+              )}
+              activeOpacity={0.8}
+            >
+              <View style={s.toggle}>
+                <View style={s.toggleKnob}/>
+              </View>
+            </TouchableOpacity>
           </View>
           <View style={s.divider}/>
           <TouchableOpacity
@@ -411,7 +420,10 @@ const s = StyleSheet.create({
   statBorderLeft: { borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.07)' },
   statVal:        { fontSize: 28, fontWeight: '800', color: C.t },
   statLabel:      { fontSize: 10, color: C.td, textTransform: 'uppercase', letterSpacing: 0.8, marginTop: 3 },
-  // Security
+  // Security toggle
+  toggle:         { width: 46, height: 26, borderRadius: 13, backgroundColor: C.green, justifyContent: 'center', paddingHorizontal: 2 },
+  toggleKnob:     { width: 22, height: 22, borderRadius: 11, backgroundColor: 'white', alignSelf: 'flex-end' },
+  // (legacy badge kept for reference)
   onBadge:        { backgroundColor: 'rgba(76,175,125,0.15)', borderRadius: 6, paddingHorizontal: 9, paddingVertical: 4, borderWidth: 1, borderColor: 'rgba(76,175,125,0.3)' },
   onBadgeText:    { fontSize: 10, fontWeight: '700', color: C.green, letterSpacing: 0.8 },
   // History
