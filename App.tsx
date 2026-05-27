@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import * as Updates from 'expo-updates';
 import Purchases from 'react-native-purchases';
 import HomeScreen       from './src/screens/HomeScreen';
 import ResultsScreen    from './src/screens/ResultsScreen';
@@ -41,6 +42,17 @@ export default function App() {
     Purchases.configure({ apiKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY! });
 
     const init = async () => {
+      if (!__DEV__) {
+        try {
+          const update = await Updates.checkForUpdateAsync();
+          if (update.isAvailable) {
+            await Updates.fetchUpdateAsync();
+            await Updates.reloadAsync();
+            return;
+          }
+        } catch {}
+      }
+
       const [session, seen] = await Promise.all([
         getSession().catch(() => null),
         SecureStore.getItemAsync('onboarding_done').catch(() => null),
