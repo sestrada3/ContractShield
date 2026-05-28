@@ -361,28 +361,31 @@ export default function AccountScreen() {
             <Text style={s.emptyText}>No analyses yet. Upload a contract to get started.</Text>
           ) : (
             history.map((item, i) => (
-              <TouchableOpacity
-                key={item.id}
-                style={[s.histRow, i < history.length - 1 && s.histBorder]}
-                onPress={() => openHistoryResult(item)}
-                onLongPress={() => confirmDeleteAnalysis(item.id)}
-                activeOpacity={0.7}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={s.histType}>{item.result?.type ?? 'Document'}</Text>
-                  <Text style={s.histDate}>
-                    {new Date(item.created_at).toLocaleDateString('en-US', {
-                      month: 'short', day: 'numeric', year: 'numeric',
-                    })}
-                  </Text>
-                </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <View style={[s.scoreChip, scoreStyle(item.result?.score)]}>
-                    <Text style={s.scoreChipText}>{item.result?.score ?? '?'}</Text>
+              <View key={item.id} style={[s.histRow, i < history.length - 1 && s.histBorder]}>
+                <TouchableOpacity
+                  style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
+                  onPress={() => openHistoryResult(item)}
+                  activeOpacity={0.7}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.histType}>{item.result?.type ?? 'Document'}</Text>
+                    <Text style={s.histDate}>
+                      {new Date(item.created_at).toLocaleDateString('en-US', {
+                        month: 'short', day: 'numeric', year: 'numeric',
+                      })}
+                    </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={14} color={C.td}/>
-                </View>
-              </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <View style={[s.scoreChip, scoreStyle(item.result?.score)]}>
+                      <Text style={s.scoreChipText}>{item.result?.score ?? '?'}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={14} color={C.td}/>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => confirmDeleteAnalysis(item.id)} style={s.deleteBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name="trash-outline" size={16} color={C.red}/>
+                </TouchableOpacity>
+              </View>
             ))
           )}
         </View>
@@ -496,6 +499,7 @@ const s = StyleSheet.create({
   scoreMid:       { backgroundColor: 'rgba(201,168,76,0.2)' },
   scoreBad:       { backgroundColor: 'rgba(224,82,82,0.2)' },
   scoreNeutral:   { backgroundColor: 'rgba(255,255,255,0.08)' },
+  deleteBtn:      { paddingLeft: 12 },
   emptyText:      { fontSize: 13, color: C.td, textAlign: 'center', paddingVertical: 16, lineHeight: 20 },
   legal:          { textAlign: 'center', fontSize: 10, color: C.td, marginTop: 24, lineHeight: 16 },
 });
