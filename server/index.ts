@@ -194,6 +194,17 @@ app.get('/api/history', requireAuth, async (req: any, res) => {
   res.json(data || []);
 });
 
+// ── Delete single analysis ───────────────────────────────────────────────────
+app.delete('/api/analyses/:id', requireAuth, async (req: any, res) => {
+  const { error } = await supabase
+    .from('analyses')
+    .delete()
+    .eq('id', req.params.id)
+    .eq('user_id', req.user.id);
+  if (error) return res.status(500).json({ error: 'Could not delete analysis.' });
+  res.json({ success: true });
+});
+
 // ── RevenueCat: webhook ──────────────────────────────────────────────────────
 // Receives subscription lifecycle events from RevenueCat.
 // Secured via a shared secret in the Authorization header.

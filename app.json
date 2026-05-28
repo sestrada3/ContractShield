@@ -19,7 +19,8 @@
         "NSCameraUsageDescription": "Take photos of contracts to analyze them",
         "NSPhotoLibraryUsageDescription": "Upload contract images from your photo library",
         "NSDocumentPickerUsageDescription": "Select contract documents to analyze",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSFaceIDUsageDescription": "Use Face ID to unlock ContractShield"
       }
     },
     "android": {
@@ -49,13 +50,23 @@
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-local-authentication",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#0b0d12",
+          "sounds": []
+        }
+      ]
     ],
     "runtimeVersion": {
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/793a4d6a-48c0-4575-9d1b-c52a456c4dc7"
+      "url": "https://u.expo.dev/793a4d6a-48c0-4575-9d1b-c52a456c4dc7",
+      "checkAutomatically": "ON_LOAD"
     },
     "scheme": "contractshield",
     "extra": {

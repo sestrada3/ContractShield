@@ -76,6 +76,15 @@ export async function addCredits(productId: string, transactionId: string): Prom
   return res.json();
 }
 
+// ── Delete a single analysis ─────────────────────────────────────────────────
+export async function deleteAnalysis(id: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/api/analyses/${id}`, {
+    method: 'DELETE',
+    headers: await authHeaders(),
+  });
+  if (!res.ok) throw new Error('Could not delete analysis');
+}
+
 // ── Delete account ───────────────────────────────────────────────────────────
 export async function deleteAccount(): Promise<void> {
   const res = await fetch(`${BASE_URL}/api/account`, {

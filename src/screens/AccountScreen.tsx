@@ -7,10 +7,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import * as Haptics from 'expo-haptics';
+import * as SecureStore from 'expo-secure-store';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Purchases from 'react-native-purchases';
 import { useStore } from '../services/store';
-import { getHistory, deleteAccount, getUsage, setAuthToken } from '../services/api';
+import { getHistory, deleteAccount, getUsage, setAuthToken, deleteAnalysis } from '../services/api';
+import * as LocalAuthentication from 'expo-local-authentication';
 import { signOut } from '../services/auth';
 import { C } from '../theme';
 
@@ -51,6 +53,8 @@ export default function AccountScreen() {
   const [loadingDelete, setLoadingDelete]     = useState(false);
   const [subscriptionType, setSubscriptionType] = useState<'monthly' | 'yearly' | null>(null);
   const [renewalDate, setRenewalDate]         = useState<string | null>(null);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricEnabled, setBiometricEnabled]     = useState(false);
 
   const email       = user?.email ?? '';
   const initials    = email.slice(0, 2).toUpperCase();
@@ -82,6 +86,13 @@ export default function AccountScreen() {
           }
         })
         .catch(() => {});
+      LocalAuthentication.hasHardwareAsync().then(async has => {
+        if (has) {
+          setBiometricAvailable(true);
+          const val = await SecureStore.getItemAsync('biometricEnabled').catch(() => null);
+          setBiometricEnabled(val === '1');
+        }
+      });
       setLoadingHistory(true);
       getHistory()
         .then(setHistory)
@@ -116,6 +127,37 @@ export default function AccountScreen() {
     try { await signOut(); } catch {}
     setAuthToken(null);
     setUser(null);
+  };
+
+  const handleBiometricToggle = async () => {
+    if (biometricEnabled) {
+      await SecureStore.setItemAsync('biometricEnabled', '0');
+      setBiometricEnabled(false);
+    } else {
+      const result = await LocalAuthentication.authenticateAsync({ promptMessage: 'Authenticate to enable Face ID unlock' });
+      if (result.success) {
+        await SecureStore.setItemAsync('biometricEnabled', '1');
+        setBiometricEnabled(true);
+      }
+    }
+  };
+
+  const confirmDeleteAnalysis = (id: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert('Delete Analysis', 'Remove this analysis from your history?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete', style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteAnalysis(id);
+            setHistory(h => h.filter(item => item.id !== id));
+          } catch {
+            Alert.alert('Error', 'Could not delete analysis.');
+          }
+        },
+      },
+    ]);
   };
 
   const handleDeleteAccount = () => {
@@ -280,6 +322,22 @@ export default function AccountScreen() {
               </View>
             </TouchableOpacity>
           </View>
+          {biometricAvailable && (
+            <>
+              <View style={s.divider}/>
+              <View style={s.row}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.rowLabel}>Face ID Unlock</Text>
+                  <Text style={s.rowMeta}>Require Face ID to open the app</Text>
+                </View>
+                <TouchableOpacity onPress={handleBiometricToggle} activeOpacity={0.8}>
+                  <View style={[s.toggle, { backgroundColor: biometricEnabled ? C.green : 'rgba(255,255,255,0.15)' }]}>
+                    <View style={[s.toggleKnob, { alignSelf: biometricEnabled ? 'flex-end' : 'flex-start' }]}/>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
           <View style={s.divider}/>
           <TouchableOpacity
             style={s.row}
@@ -307,6 +365,7 @@ export default function AccountScreen() {
                 key={item.id}
                 style={[s.histRow, i < history.length - 1 && s.histBorder]}
                 onPress={() => openHistoryResult(item)}
+                onLongPress={() => confirmDeleteAnalysis(item.id)}
                 activeOpacity={0.7}
               >
                 <View style={{ flex: 1 }}>

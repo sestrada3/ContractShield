@@ -9,6 +9,8 @@ import { signInWithEmail, signUpWithEmail, resetPassword } from '../services/aut
 import { setAuthToken } from '../services/api';
 import { useStore } from '../services/store';
 import { C } from '../theme';
+import * as LocalAuthentication from 'expo-local-authentication';
+import * as SecureStore from 'expo-secure-store';
 
 type Mode = 'signin' | 'signup' | 'reset';
 
@@ -65,6 +67,32 @@ export default function LoginScreen() {
       }
       setUser(session.user);
       setAuthToken(session.access_token);
+
+      // One-time Face ID enrollment prompt after first successful login
+      const [seen, hasHardware, isEnrolled] = await Promise.all([
+        SecureStore.getItemAsync('hasSeenBiometricPrompt').catch(() => null),
+        LocalAuthentication.hasHardwareAsync().catch(() => false),
+        LocalAuthentication.isEnrolledAsync().catch(() => false),
+      ]);
+      if (!seen && hasHardware && isEnrolled) {
+        await SecureStore.setItemAsync('hasSeenBiometricPrompt', '1');
+        Alert.alert(
+          'Enable Face ID?',
+          'Sign in faster and protect your contracts by requiring Face ID to open ContractShield.',
+          [
+            { text: 'Not Now', style: 'cancel' },
+            {
+              text: 'Enable Face ID',
+              onPress: async () => {
+                const result = await LocalAuthentication.authenticateAsync({ promptMessage: 'Confirm Face ID' });
+                if (result.success) {
+                  await SecureStore.setItemAsync('biometricEnabled', '1');
+                }
+              },
+            },
+          ]
+        );
+      }
     } catch (e: any) {
       if (e.message?.toLowerCase().includes('email not confirmed')) {
         Alert.alert(
