@@ -290,8 +290,8 @@ export default function AccountScreen() {
                 <Text style={s.statLabel}>Analyzed</Text>
               </View>
               <View style={[s.statBox, s.statBorderLeft]}>
-                <Text style={s.statVal}>{isPro ? '∞' : Math.max(0, freeLimit - freeUsed)}</Text>
-                <Text style={s.statLabel}>{isPro ? 'Unlimited' : 'Remaining'}</Text>
+                <Text style={s.statVal}>{isPro ? '∞' : credits > 0 ? credits : Math.max(0, freeLimit - freeUsed)}</Text>
+                <Text style={s.statLabel}>{isPro ? 'Unlimited' : credits > 0 ? 'Paid credits' : 'Remaining'}</Text>
               </View>
               <View style={[s.statBox, s.statBorderLeft]}>
                 <Text style={[s.statVal, { color: avgScoreColor }]}>{avgScore ?? '—'}</Text>

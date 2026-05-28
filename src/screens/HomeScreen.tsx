@@ -60,6 +60,7 @@ export default function HomeScreen() {
   const [fileName, setFileName]   = useState('');
   const [imageData, setImageData] = useState<{base64: string; type: string} | null>(null);
   const [pdfBase64, setPdfBase64] = useState<string | null>(null);
+  const [usageLoaded, setUsageLoaded] = useState(false);
   const cancelled = useRef(false);
 
   // Sync usage every time this screen comes into focus (catches upgrades from Paywall)
@@ -70,7 +71,8 @@ export default function HomeScreen() {
           setIsPro(u.isPro);
           setUsage(u.used, u.limit, u.credits);
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => setUsageLoaded(true));
     }, [])
   );
 
@@ -216,7 +218,7 @@ export default function HomeScreen() {
         </View>
 
         {/* Usage badge */}
-        {!isPro && (
+        {!isPro && usageLoaded && (
           <View style={s.usageBadge}>
             <Text style={s.usageText}>
               {credits > 0
