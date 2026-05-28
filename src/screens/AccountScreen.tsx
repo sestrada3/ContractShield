@@ -49,7 +49,7 @@ export default function AccountScreen() {
   const { user, isPro, freeUsed, freeLimit, credits, setUser, setIsPro, setUsage, setResult } = useStore();
 
   const [history, setHistory]               = useState<{ id: string; result: any; created_at: string }[]>([]);
-  const [loadingHistory, setLoadingHistory]   = useState(true);
+  const [loadingHistory, setLoadingHistory]   = useState(false);
   const [loadingDelete, setLoadingDelete]     = useState(false);
   const [subscriptionType, setSubscriptionType] = useState<'monthly' | 'yearly' | null>(null);
   const [renewalDate, setRenewalDate]         = useState<string | null>(null);
@@ -93,11 +93,9 @@ export default function AccountScreen() {
           setBiometricEnabled(val === '1');
         }
       });
-      setLoadingHistory(true);
       getHistory()
         .then(setHistory)
-        .catch(() => {})
-        .finally(() => setLoadingHistory(false));
+        .catch(() => {});
     }, [])
   );
 
