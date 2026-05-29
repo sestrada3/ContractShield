@@ -72,9 +72,8 @@ export default function AccountScreen() {
           const entitlement = info.entitlements.active['ContractShield AI Pro'];
           if (entitlement) {
             const id = entitlement.productIdentifier.toLowerCase();
-            setSubscriptionType(
-              id.includes('annual') || id.includes('yearly') || id.includes('year') ? 'yearly' : 'monthly'
-            );
+            const isYearly = (id.includes('annual') || id.includes('yearly') || id.includes('year')) && !id.includes('month');
+            setSubscriptionType(isYearly ? 'yearly' : 'monthly');
             if (entitlement.expirationDate) {
               setRenewalDate(new Date(entitlement.expirationDate).toLocaleDateString('en-US', {
                 month: 'short', day: 'numeric', year: 'numeric',
