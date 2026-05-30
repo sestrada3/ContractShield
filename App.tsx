@@ -52,6 +52,7 @@ export default function App() {
         setUser(session.user);
         setAuthToken(session.access_token);
         await Purchases.logIn(session.user.id).catch(() => {});
+        if (session.user.email) Purchases.setAttributes({ $email: session.user.email });
         syncUsage();
         const biometricEnabled = await SecureStore.getItemAsync('biometricEnabled').catch(() => null);
         if (biometricEnabled === '1') setBiometricLocked(true);
@@ -64,7 +65,9 @@ export default function App() {
       if (session) {
         setUser(session.user);
         setAuthToken(session.access_token);
-        Purchases.logIn(session.user.id).catch(() => {});
+        Purchases.logIn(session.user.id)
+          .then(() => { if (session.user.email) Purchases.setAttributes({ $email: session.user.email }); })
+          .catch(() => {});
         syncUsage();
       } else {
         setUser(null);
