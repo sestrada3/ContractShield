@@ -24,6 +24,22 @@ app.use(express.json({ limit: '10mb' }));
 
 app.get('/health', (_req, res) => res.json({ ok: true, build: 'v10' }));
 
+// ── Remote config / feature flags ────────────────────────────────────────────
+// To kill a feature: set CONFIG_ANALYSIS_ENABLED=false in Vercel env and redeploy.
+// To force an update: set CONFIG_MIN_BUILD=<build number> and redeploy.
+app.get('/api/config', (_req, res) => {
+  res.json({
+    min_build:  parseInt(process.env.CONFIG_MIN_BUILD || '0', 10),
+    store_url:  process.env.CONFIG_STORE_URL || 'https://apps.apple.com',
+    features: {
+      analysis_enabled: process.env.CONFIG_ANALYSIS_ENABLED !== 'false',
+      pdf_enabled:      process.env.CONFIG_PDF_ENABLED      !== 'false',
+      image_enabled:    process.env.CONFIG_IMAGE_ENABLED    !== 'false',
+      paywall_enabled:  process.env.CONFIG_PAYWALL_ENABLED  !== 'false',
+    },
+  });
+});
+
 app.get('/api/diag/pdf', async (_req, res) => {
   const TINY_PDF = 'JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+ID4+ID4+ID4+CmVuZG9iago0IDAgb2JqCjw8IC9MZW5ndGggNjcgPj4Kc3RyZWFtCkJUIC9GMSAxMiBUZiAxMDAgNzAwIFRkIChUaGlzIGlzIGEgdGVzdCBlbXBsb3ltZW50IGNvbnRyYWN0LikgVGogRVQKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAyOTAgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA1IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgo0MDcKJSVFT0YK';
   try {

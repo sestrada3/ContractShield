@@ -4,9 +4,10 @@ import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, View, Text, TouchableOpacity } from 'react-native';
+import { ActivityIndicator, View, Text, TouchableOpacity, Linking } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
+import Constants from 'expo-constants';
 import Purchases from 'react-native-purchases';
 import HomeScreen       from './src/screens/HomeScreen';
 import ResultsScreen    from './src/screens/ResultsScreen';
@@ -15,7 +16,7 @@ import AccountScreen    from './src/screens/AccountScreen';
 import LoginScreen      from './src/screens/LoginScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import { getSession, supabase } from './src/services/auth';
-import { setAuthToken, getUsage } from './src/services/api';
+import { setAuthToken, getUsage, getConfig } from './src/services/api';
 import { useStore } from './src/services/store';
 
 const Stack = createNativeStackNavigator();
@@ -26,7 +27,7 @@ const MyTheme = {
 };
 
 export default function App() {
-  const { user, setUser, setIsPro, setUsage } = useStore();
+  const { user, setUser, setIsPro, setUsage, setAppConfig, appConfig } = useStore();
 
   const syncUsage = async () => {
     try {
@@ -43,10 +44,12 @@ export default function App() {
     Purchases.configure({ apiKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY! });
 
     const init = async () => {
-      const [session, seen] = await Promise.all([
+      const [session, seen, config] = await Promise.all([
         getSession().catch(() => null),
         SecureStore.getItemAsync('onboarding_done').catch(() => null),
+        getConfig().catch(() => null),
       ]);
+      if (config) setAppConfig(config);
       if (seen) setOnboardingDone(true);
       if (session) {
         setUser(session.user);
@@ -91,6 +94,28 @@ export default function App() {
     return (
       <View style={{ flex: 1, backgroundColor: '#0b0d12', alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator color="#c9a84c" size="large"/>
+      </View>
+    );
+  }
+
+  const nativeBuild = parseInt(Constants.nativeBuildVersion || '0', 10);
+  if (appConfig && nativeBuild < appConfig.min_build) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#0b0d12', alignItems: 'center', justifyContent: 'center', padding: 36 }}>
+        <StatusBar style="light"/>
+        <Text style={{ fontSize: 48, marginBottom: 20 }}>🛡️</Text>
+        <Text style={{ color: '#fff', fontSize: 22, fontWeight: '800', textAlign: 'center', marginBottom: 12 }}>
+          Update Required
+        </Text>
+        <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 36 }}>
+          A new version of ContractShield is available with important fixes. Please update to continue.
+        </Text>
+        <TouchableOpacity
+          onPress={() => Linking.openURL(appConfig.store_url)}
+          style={{ backgroundColor: '#c9a84c', paddingVertical: 16, paddingHorizontal: 40, borderRadius: 14 }}
+        >
+          <Text style={{ color: '#0b0d12', fontWeight: '700', fontSize: 16 }}>Update Now</Text>
+        </TouchableOpacity>
       </View>
     );
   }
