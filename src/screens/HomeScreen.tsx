@@ -54,7 +54,8 @@ function LoadingOverlay({ onCancel }: { onCancel: () => void }) {
 
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
-  const { setResult, setAnalyzing, setError, setIsPro, setUsage, clearFloor, isAnalyzing, isPro, freeUsed, freeLimit, credits } = useStore();
+  const { setResult, setAnalyzing, setError, setIsPro, setUsage, clearFloor, isAnalyzing, isPro, freeUsed, freeLimit, credits, appConfig } = useStore();
+  const features = appConfig?.features;
 
   const [text, setText]           = useState('');
   const [fileName, setFileName]   = useState('');
@@ -80,6 +81,10 @@ export default function HomeScreen() {
   const hasInput   = text.trim().length > 0 || !!imageData || !!pdfBase64;
 
   const pickDocument = async () => {
+    if (features?.pdf_enabled === false) {
+      Alert.alert('Temporarily Unavailable', 'Document upload is temporarily unavailable. Please paste your contract text instead.');
+      return;
+    }
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: ['application/pdf', 'text/plain', 'text/markdown'],
@@ -109,6 +114,10 @@ export default function HomeScreen() {
   };
 
   const pickImage = async (useCamera: boolean) => {
+    if (features?.image_enabled === false) {
+      Alert.alert('Temporarily Unavailable', 'Image upload is temporarily unavailable. Please paste your contract text instead.');
+      return;
+    }
     const perm = useCamera
       ? await ImagePicker.requestCameraPermissionsAsync()
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -140,6 +149,10 @@ export default function HomeScreen() {
 
   const run = async () => {
     if (!hasInput) return;
+    if (features?.analysis_enabled === false) {
+      Alert.alert('Temporarily Unavailable', 'Analysis is temporarily unavailable. Please try again later.');
+      return;
+    }
     if (!canAnalyze) { navigation.navigate('Paywall'); return; }
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     cancelled.current = false;
