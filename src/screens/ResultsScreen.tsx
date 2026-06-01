@@ -4,6 +4,7 @@ import {
   Share, Animated
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import * as WebBrowser from 'expo-web-browser';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Circle } from 'react-native-svg';
@@ -16,6 +17,9 @@ const BENCH = { aggressive:{c:C.red,i:'⚠',l:'Aggressive'}, unusual:{c:C.amber,
 const riskOf  = (r: string) => RISK[r as keyof typeof RISK]  || RISK.medium;
 const benchOf = (b: string) => BENCH[b as keyof typeof BENCH] || BENCH.standard;
 const urgCol  = (u: string) => ({high:C.red,medium:C.amber,low:C.green})[u as keyof object] || C.tm;
+
+// Replace with your actual affiliate URL once you sign up with LegalZoom / UpCounsel / Avvo
+const LAWYER_AFFILIATE_URL = 'https://www.legalzoom.com/attorney-services/';
 
 const SCORE_CONTEXT: Record<string, string> = {
   'employment':      'Most employment contracts score 5–7',
@@ -295,6 +299,23 @@ export default function ResultsScreen() {
           </TouchableOpacity>
         )}
 
+        {/* Lawyer Connect — shown for high-risk contracts */}
+        {score < 5 && (
+          <TouchableOpacity
+            style={rs.lawyerBanner}
+            onPress={() => WebBrowser.openBrowserAsync(LAWYER_AFFILIATE_URL)}
+            activeOpacity={0.8}
+          >
+            <View style={rs.lawyerIconWrap}>
+              <Ionicons name="briefcase-outline" size={22} color={C.gold}/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={rs.lawyerTitle}>Want a lawyer's eyes on this?</Text>
+              <Text style={rs.lawyerSub}>Connect with a licensed attorney for a professional review →</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+
         {/* Bottom CTA */}
         <TouchableOpacity
           style={rs.analyzeAnotherBtn}
@@ -359,6 +380,10 @@ const rs = StyleSheet.create({
   upgradeBanner:      { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12, padding: 16, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(224,82,82,0.3)', backgroundColor: 'rgba(224,82,82,0.08)' },
   upgradeBannerTitle: { fontSize: 14, fontWeight: '700', color: C.red, marginBottom: 2 },
   upgradeBannerSub:   { fontSize: 12, color: 'rgba(224,82,82,0.7)' },
+  lawyerBanner:    { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 12, padding: 16, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(201,168,76,0.25)', backgroundColor: 'rgba(201,168,76,0.06)' },
+  lawyerIconWrap:  { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(201,168,76,0.12)', alignItems: 'center', justifyContent: 'center' },
+  lawyerTitle:     { fontSize: 14, fontWeight: '700', color: C.t, marginBottom: 3 },
+  lawyerSub:       { fontSize: 12, color: C.tm, lineHeight: 17 },
   analyzeAnotherBtn:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8, marginBottom: 4, paddingVertical: 16, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(201,168,76,0.25)', backgroundColor: 'rgba(201,168,76,0.07)' },
   analyzeAnotherText: { fontSize: 14, fontWeight: '700', color: C.gold },
   disclaimer:         { textAlign: 'center', fontSize: 10, color: C.td, lineHeight: 16, marginTop: 12 },
