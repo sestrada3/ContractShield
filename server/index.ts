@@ -116,7 +116,7 @@ app.post('/api/analyze', rateLimit({ windowMs: 60_000, max: 5 }), requireAuth, a
 
     {
       const model = pdfBase64 ? 'claude-sonnet-4-6' : 'claude-haiku-4-5-20251001';
-      const maxTokens = pdfBase64 ? 4000 : 2000;
+      const maxTokens = pdfBase64 ? 8000 : 4000;
       const reqOpts = pdfBase64 ? { headers: { 'anthropic-beta': 'pdfs-2024-09-25' } } : {};
       const message = await anthropic.messages.create(
         { model, max_tokens: maxTokens, system, messages: [{ role: 'user' as const, content }] },
@@ -129,6 +129,10 @@ app.post('/api/analyze', rateLimit({ windowMs: 60_000, max: 5 }), requireAuth, a
       }
       raw = block.text;
       console.log('Anthropic stop_reason:', message.stop_reason, 'raw length:', raw.length);
+      if (message.stop_reason === 'max_tokens') {
+        console.error('Response truncated at max_tokens — JSON will be incomplete');
+        return res.status(500).json({ error: 'Contract too complex to analyze fully. Please try a shorter section.' });
+      }
     }
 
     const result = parseJSON(raw);
@@ -489,15 +493,44 @@ export const buildPrompt = (text?: string, isPro = false) => {
 };
 
 export const parseJSON = (str: string) => {
-  const candidates = [
-    str.trim(),
-    (str.match(/```(?:json)?\s*([\s\S]*?)```/) || [])[1],
-    (str.match(/\{[\s\S]*\}/) || [])[0],
-  ];
-  for (const v of candidates) {
-    if (!v) continue;
-    try { const p = JSON.parse(v.trim()); if (p && typeof p === 'object') return p; } catch {}
+  const trimmed = str.trim();
+
+  // 1. Direct parse
+  try { const p = JSON.parse(trimmed); if (p && typeof p === 'object') return p; } catch {}
+
+  // 2. Markdown code fence
+  const fenced = (trimmed.match(/```(?:json)?\s*([\s\S]*?)```/) || [])[1];
+  if (fenced) {
+    try { const p = JSON.parse(fenced.trim()); if (p && typeof p === 'object') return p; } catch {}
   }
+
+  // 3. String-aware balanced brace extraction — correctly handles text before/after the
+  //    JSON object and {/} characters inside JSON string values.
+  const start = str.indexOf('{');
+  if (start !== -1) {
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+    for (let i = start; i < str.length; i++) {
+      const ch = str[i];
+      if (escape) { escape = false; continue; }
+      if (ch === '\\' && inString) { escape = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (ch === '{') depth++;
+      else if (ch === '}') {
+        depth--;
+        if (depth === 0) {
+          try {
+            const p = JSON.parse(str.slice(start, i + 1));
+            if (p && typeof p === 'object') return p;
+          } catch {}
+          break;
+        }
+      }
+    }
+  }
+
   return null;
 };
 
