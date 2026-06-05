@@ -247,9 +247,9 @@ export default function PaywallScreen() {
                   <Text style={s.bestValueText}>BEST VALUE</Text>
                 </View>
                 <Text style={[s.planBtnText, plan === 'yearly' && s.planBtnTextActive]}>Yearly</Text>
-                <Text style={[s.planPrice, plan === 'yearly' && s.planPriceActive]}>$5.99/mo</Text>
+                <Text style={[s.planPrice, plan === 'yearly' && s.planPriceActive]}>{yearlyTotal}/yr</Text>
                 <Text style={s.planSavings}>Save $47.88 vs monthly</Text>
-                <Text style={s.planSub}>billed {yearlyTotal}/yr</Text>
+                <Text style={s.planSub}>~$5.99/mo, billed annually</Text>
               </TouchableOpacity>
             </View>
 
