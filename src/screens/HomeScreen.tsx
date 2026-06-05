@@ -10,6 +10,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as Haptics from 'expo-haptics';
+import * as SecureStore from 'expo-secure-store';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { analyzeDocument, getUsage } from '../services/api';
 import { useStore } from '../services/store';
@@ -138,9 +139,30 @@ export default function HomeScreen() {
     setAnalyzing(false);
   };
 
+  const requestAIConsent = (): Promise<boolean> =>
+    new Promise(resolve => {
+      Alert.alert(
+        'AI Analysis Disclosure',
+        'To analyze your document, ContractShield sends its text or image to Anthropic (claude.ai) for AI processing. Anthropic may process this data per their privacy policy. Your document is not stored by Anthropic after processing.\n\nDo you consent to sharing this document with Anthropic\'s AI service?',
+        [
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+          { text: 'I Agree', style: 'default', onPress: () => resolve(true) },
+        ],
+        { cancelable: false }
+      );
+    });
+
   const run = async () => {
     if (!hasInput) return;
     if (!canAnalyze) { navigation.navigate('Paywall'); return; }
+
+    const consentGiven = await SecureStore.getItemAsync('ai_consent_v1');
+    if (!consentGiven) {
+      const agreed = await requestAIConsent();
+      if (!agreed) return;
+      await SecureStore.setItemAsync('ai_consent_v1', 'true');
+    }
+
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     cancelled.current = false;
     setAnalyzing(true);
