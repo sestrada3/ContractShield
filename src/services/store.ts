@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { User } from '@supabase/supabase-js';
+import { AppConfig } from './api';
 
 export interface AnalysisResult {
   score: number;
@@ -41,6 +42,10 @@ interface AppState {
   creditFloor: number;
   creditFloorExpiry: number;
 
+  // Remote config
+  appConfig: AppConfig | null;
+  setAppConfig: (config: AppConfig) => void;
+
   // Analysis
   currentResult: AnalysisResult | null;
   history: AnalysisResult[];
@@ -70,11 +75,13 @@ export const useStore = create<AppState>((set) => ({
   credits: 0,
   creditFloor: 0,
   creditFloorExpiry: 0,
+  appConfig: null,
   currentResult: null,
   history: [],
   isAnalyzing: false,
   error: null,
 
+  setAppConfig: (appConfig) => set({ appConfig }),
   setUser: (user) => set({ user }),
   setIsPro: (isPro) => set((s) => {
     const floorActive = s.isProFloor && s.isProFloorExpiry > Date.now();

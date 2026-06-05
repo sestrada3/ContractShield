@@ -2,6 +2,23 @@ import { supabase } from './auth';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL!;
 
+export interface AppConfig {
+  min_build: number;
+  store_url: string;
+  features: {
+    analysis_enabled: boolean;
+    pdf_enabled: boolean;
+    image_enabled: boolean;
+    paywall_enabled: boolean;
+  };
+}
+
+export async function getConfig(): Promise<AppConfig> {
+  const res = await fetch(`${BASE_URL}/api/config`);
+  if (!res.ok) throw new Error('Config fetch failed');
+  return res.json();
+}
+
 async function authHeaders(): Promise<Record<string, string>> {
   const { data: { session } } = await supabase.auth.getSession();
   return {
