@@ -64,7 +64,7 @@ export default function App() {
       if (session) {
         setUser(session.user);
         setAuthToken(session.access_token);
-        Purchases.logIn(session.user.id).catch(() => {});
+        await Purchases.logIn(session.user.id).catch(() => {});
         syncUsage();
       } else {
         setUser(null);

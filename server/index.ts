@@ -305,11 +305,13 @@ app.post('/api/credits/add', requireAuth, async (req: any, res) => {
 
   const creditsToAdd = productId === 'com.contractshield.credits.10' ? 10 : 1;
   try {
+    // maybeSingle() returns null data (no error) when no profile row exists yet,
+    // which happens for new users who buy credits before their first analysis.
     const { data: profile, error: selectError } = await supabase
       .from('profiles')
       .select('credits, credited_transaction_ids')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
     if (selectError) throw new Error(selectError.message);
 
@@ -319,16 +321,15 @@ app.post('/api/credits/add', requireAuth, async (req: any, res) => {
 
     const newCredits = (profile?.credits || 0) + creditsToAdd;
 
-    // Update credits and record the transaction ID in a single write so there
-    // is no window where the webhook can read the profile, miss the txId, and
-    // double-count the same purchase.
+    // Upsert so the row is created for new users who have no profile yet.
+    // Combines credits write and txId idempotency key in one atomic operation.
     const { error: creditsError } = await supabase
       .from('profiles')
-      .update({
+      .upsert({
+        id: userId,
         credits: newCredits,
         credited_transaction_ids: [...(profile?.credited_transaction_ids || []), transactionId],
-      })
-      .eq('id', userId);
+      }, { onConflict: 'id' });
 
     if (creditsError) throw new Error(`credits update failed: ${creditsError.message}`);
 
