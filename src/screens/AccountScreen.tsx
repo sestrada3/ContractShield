@@ -433,6 +433,7 @@ export default function AccountScreen() {
         </View>
 
         <Text style={s.legal}>ContractShield · Not legal advice · For informational purposes only</Text>
+        <Text style={s.version}>v1.0.1 (39)</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -500,4 +501,5 @@ const s = StyleSheet.create({
   deleteBtn:      { paddingLeft: 12 },
   emptyText:      { fontSize: 13, color: C.td, textAlign: 'center', paddingVertical: 16, lineHeight: 20 },
   legal:          { textAlign: 'center', fontSize: 10, color: C.td, marginTop: 24, lineHeight: 16 },
+  version:        { textAlign: 'center', fontSize: 10, color: C.td, marginTop: 4, marginBottom: 8 },
 });
