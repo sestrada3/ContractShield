@@ -14,6 +14,7 @@ import * as SecureStore from 'expo-secure-store';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { analyzeDocument, getUsage } from '../services/api';
 import { useStore } from '../services/store';
+import { getRemoteConfig } from '../services/remoteConfig';
 import { C } from '../theme';
 
 const LOADING_STEPS = [
@@ -77,10 +78,13 @@ export default function HomeScreen() {
     }, [])
   );
 
+  const { analysisEnabled, pdfEnabled, imageEnabled } = getRemoteConfig();
+
   const canAnalyze = isPro || credits > 0 || freeUsed < freeLimit;
   const hasInput   = text.trim().length > 0 || !!imageData || !!pdfBase64;
 
   const pickDocument = async () => {
+    if (!pdfEnabled) { Alert.alert('Unavailable', 'Document upload is temporarily unavailable. Please try again later.'); return; }
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: ['application/pdf', 'text/plain', 'text/markdown'],
@@ -110,6 +114,7 @@ export default function HomeScreen() {
   };
 
   const pickImage = async (useCamera: boolean) => {
+    if (!imageEnabled) { Alert.alert('Unavailable', 'Image upload is temporarily unavailable. Please try again later.'); return; }
     const perm = useCamera
       ? await ImagePicker.requestCameraPermissionsAsync()
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -306,12 +311,12 @@ export default function HomeScreen() {
           />
 
           <TouchableOpacity
-            style={[s.analyzeBtn, (!hasInput || isAnalyzing) && s.analyzeBtnDisabled]}
+            style={[s.analyzeBtn, (!hasInput || isAnalyzing || !analysisEnabled) && s.analyzeBtnDisabled]}
             onPress={run}
-            disabled={!hasInput || isAnalyzing}
+            disabled={!hasInput || isAnalyzing || !analysisEnabled}
           >
             <Text style={s.analyzeBtnText}>
-              {canAnalyze ? 'Analyze My Document →' : 'Upgrade to Analyze →'}
+              {!analysisEnabled ? 'Analysis Unavailable' : canAnalyze ? 'Analyze My Document →' : 'Upgrade to Analyze →'}
             </Text>
           </TouchableOpacity>
 

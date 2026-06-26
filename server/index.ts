@@ -24,6 +24,35 @@ app.use(express.json({ limit: '10mb' }));
 
 app.get('/health', (_req, res) => res.json({ ok: true, build: 'v10' }));
 
+// ── Remote config ─────────────────────────────────────────────────────────────
+//
+// KILL SWITCH CHEAT SHEET
+// ========================
+// Vercel → contractshield-backend → Settings → Environment Variables → Redeploy
+//
+// Disable a feature instantly (set var, redeploy — ~30 sec):
+//   CONFIG_ANALYSIS_ENABLED=false  → greys out the Analyze button in the app
+//   CONFIG_PDF_ENABLED=false       → disables PDF/document upload
+//   CONFIG_IMAGE_ENABLED=false     → disables camera and photo library
+//   Re-enable: set back to "true" or delete the var, then redeploy
+//
+// Force a minimum app version:
+//   CONFIG_MIN_BUILD=4             → iOS build ≤3 sees a full-screen update blocker
+//   CONFIG_STORE_URL=https://apps.apple.com/app/id<YOUR_ID>
+//                                  → where the "Update Now" button sends users
+//   Current build number: app.json → ios.buildNumber (currently "3")
+//
+// All vars default to "all on, no forced update" when not set.
+app.get('/api/config', (_req, res) => {
+  res.json({
+    analysisEnabled: process.env.CONFIG_ANALYSIS_ENABLED !== 'false',
+    pdfEnabled:      process.env.CONFIG_PDF_ENABLED      !== 'false',
+    imageEnabled:    process.env.CONFIG_IMAGE_ENABLED    !== 'false',
+    minBuild:        parseInt(process.env.CONFIG_MIN_BUILD || '0', 10),
+    storeUrl:        process.env.CONFIG_STORE_URL || '',
+  });
+});
+
 app.get('/api/diag/pdf', async (_req, res) => {
   const TINY_PDF = 'JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+ID4+ID4+ID4+CmVuZG9iago0IDAgb2JqCjw8IC9MZW5ndGggNjcgPj4Kc3RyZWFtCkJUIC9GMSAxMiBUZiAxMDAgNzAwIFRkIChUaGlzIGlzIGEgdGVzdCBlbXBsb3ltZW50IGNvbnRyYWN0LikgVGogRVQKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAyOTAgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA1IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgo0MDcKJSVFT0YK';
   try {

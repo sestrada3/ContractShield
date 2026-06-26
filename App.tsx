@@ -17,6 +17,8 @@ import OnboardingScreen from './src/screens/OnboardingScreen';
 import { getSession, supabase } from './src/services/auth';
 import { setAuthToken, getUsage } from './src/services/api';
 import { useStore } from './src/services/store';
+import { fetchRemoteConfig, getRemoteConfig, needsUpdate } from './src/services/remoteConfig';
+import UpdateBlocker from './src/components/UpdateBlocker';
 
 const Stack = createNativeStackNavigator();
 
@@ -38,6 +40,7 @@ export default function App() {
   const [ready, setReady]               = useState(false);
   const [onboardingDone, setOnboardingDone] = useState(false);
   const [biometricLocked, setBiometricLocked] = useState(false);
+  const [updateRequired, setUpdateRequired] = useState(false);
 
   useEffect(() => {
     Purchases.configure({ apiKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY! });
@@ -46,7 +49,9 @@ export default function App() {
       const [session, seen] = await Promise.all([
         getSession().catch(() => null),
         SecureStore.getItemAsync('onboarding_done').catch(() => null),
+        fetchRemoteConfig(),
       ]);
+      if (needsUpdate()) { setUpdateRequired(true); setReady(true); return; }
       if (seen) setOnboardingDone(true);
       if (session) {
         setUser(session.user);
@@ -104,6 +109,15 @@ export default function App() {
           <Text style={{ color: '#c9a84c', fontWeight: '600', fontSize: 15 }}>Try Again</Text>
         </TouchableOpacity>
       </View>
+    );
+  }
+
+  if (updateRequired) {
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <StatusBar style="light"/>
+        <UpdateBlocker storeUrl={getRemoteConfig().storeUrl}/>
+      </GestureHandlerRootView>
     );
   }
 
